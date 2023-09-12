@@ -1,0 +1,10 @@
+# Ignore Python bytecode cache files
+**__pycache__
+# Ignore Visual Studio Code settings
+.vscode
+# Ignore macOS specific files
+.DS_Store
+# Exclude figures and script logs
+results/
+*/logs
+*.png
