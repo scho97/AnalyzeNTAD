@@ -11,7 +11,7 @@ from utils.visualize import plot_age_distributions
 
 
 if __name__ == "__main__":
-    # Set directories
+    # Set directory paths
     BASE_DIR = "/home/scho/AnalyzeNTAD"
     DATA_DIR = "/ohba/pi/mwoolrich/scho/NTAD"
     SRC_DIR = os.path.join(DATA_DIR, f"src/meg")
