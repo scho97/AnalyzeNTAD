@@ -3,7 +3,6 @@
 """
 
 import os
-import numpy as np
 from glob import glob
 
 def get_subject_ids(data_dir, modality):
