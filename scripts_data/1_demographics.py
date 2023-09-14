@@ -23,7 +23,13 @@ if __name__ == "__main__":
     df_meta = pd.read_excel(filepath) # contains subject demographics
 
     # Get subjects with source reconstructed data
-    subjects, n_subjects = get_subject_ids(SRC_DIR, "meg")
+    subjects_meg, n_subjects_meg = get_subject_ids(SRC_DIR, "meg")
+    subjects_eeg, n_subjects_eeg = get_subject_ids(SRC_DIR, "eeg")
+    if not (subjects_meg == subjects_eeg):
+        raise ValueError("order of subjects in MEG and EEG does not align.")
+    else:
+        subjects = subjects_meg
+        n_subjects = n_subjects_meg
     print(f"Number of subjects available: {n_subjects}")
 
     # Filter dataframe with subjects available
