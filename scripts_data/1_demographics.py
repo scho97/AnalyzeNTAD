@@ -3,9 +3,9 @@
 """
 
 import os
-import glob
 import numpy as np
 import pandas as pd
+from utils.data import get_subject_ids
 from utils.statistics import stat_ind_two_samples
 from utils.visualize import plot_age_distributions
 
@@ -14,8 +14,8 @@ if __name__ == "__main__":
     # Set directory paths
     BASE_DIR = "/home/scho/AnalyzeNTAD"
     DATA_DIR = "/ohba/pi/mwoolrich/scho/NTAD"
-    SRC_DIR = os.path.join(DATA_DIR, f"src/meg")
-    SAVE_DIR = os.path.join(BASE_DIR, f"results/data")
+    SRC_DIR = os.path.join(DATA_DIR, "src")
+    SAVE_DIR = os.path.join(BASE_DIR, "results/data")
     os.makedirs(SAVE_DIR, exist_ok=True)
 
     # Load meta data
@@ -23,9 +23,8 @@ if __name__ == "__main__":
     df_meta = pd.read_excel(filepath) # contains subject demographics
 
     # Get subjects with source reconstructed data
-    src_files = sorted(glob.glob(os.path.join(SRC_DIR, "*/parc/parc-raw.fif")))
-    subjects = [file.split("/")[-3] for file in src_files]
-    print(f"Number of subjects available: {len(subjects)}")
+    subjects, n_subjects = get_subject_ids(SRC_DIR, "meg")
+    print(f"Number of subjects available: {n_subjects}")
 
     # Filter dataframe with subjects available
     mask = df_meta["ID"].isin(subjects)
