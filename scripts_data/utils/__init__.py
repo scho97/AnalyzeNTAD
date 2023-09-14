@@ -2,5 +2,6 @@
 
 """
 
+from .data import *
 from .statistics import *
 from .visualize import *
