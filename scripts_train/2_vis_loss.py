@@ -15,18 +15,14 @@ from osl_dynamics.utils import plotting
 if __name__ == "__main__":
     # Set hyperparameters
     if len(argv) != 4:
-        print("Need to pass three arguments: modality, model, run # (e.g., python script.py eeg hmm 1)")
+        print("Need to pass three arguments: dataset name, model, run # (e.g., python script.py lemon hmm 1)")
         exit()
-    modality = argv[1]
+    dataset_name = argv[1]
     model_type = argv[2]
     run_id = argv[3]
-    print(f"[INFO] Modality: {modality.upper()} | Model: {model_type.upper()} | Run: run{run_id}_{model_type}")
+    print(f"[INFO] Dataset: {dataset_name.upper()} | Model: {model_type.upper()} | Run: run{run_id}_{model_type}")
 
-    # Get names of the dataset and run directory
-    if modality == "eeg":
-        dataset_name = "lemon"
-    else:
-        dataset_name = "camcan"
+    # Get model run directory
     run_dir = f"run{run_id}_{model_type}"
 
     # Set up directories
