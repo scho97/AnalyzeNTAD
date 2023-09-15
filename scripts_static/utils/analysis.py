@@ -3,6 +3,8 @@
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
+from osl_dynamics.analysis import power
 
 ##################
 ##     PSDs     ##
@@ -43,3 +45,50 @@ def get_peak_frequency(freqs, psd, freq_range):
             peak_freq[n] = freqs[psd[n] == max(bounded_psd[n])]
 
     return peak_freq
+
+##################
+##  Power Maps  ##
+##################
+
+class SubjectStaticPowerMap():
+    """
+    Class for computing the subject-level power maps.
+    """
+    def __init__(self, freqs, data):
+        self.n_subjects = data.shape[0]
+        self.freqs = freqs
+        self.psds = data # dim: (n_subjects x n_channels x n_freqs)
+
+    def plot_psd(self, filename):
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+        for n in range(self.n_subjects):
+            psd = np.mean(self.psds[n], axis=0) # mean across channels
+            plt.plot(self.freqs, psd)
+        ax.set_xlabel('Frequency (Hz)')
+        ax.set_ylabel('PSD (a.u.)')
+        ax.set_title('Subject-level PSDs')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        plt.tight_layout()
+        fig.savefig(filename)
+        plt.close()
+        return None
+
+    def compute_power_map(self, freq_range, scale=False):
+        power_maps = power.variance_from_spectra(
+            self.freqs,
+            self.psds,
+            frequency_range=freq_range,
+        )
+        if scale:
+            power_maps_full = power.variance_from_spectra(self.freqs, self.psds)
+            power_maps = np.divide(power_maps, power_maps_full)
+        print("Shape of power maps: ", power_maps.shape)
+        
+        return power_maps
+
+    def separate_by_group(self, power_maps, divide_idx):
+        power1 = power_maps[:divide_idx, :]
+        power2 = power_maps[divide_idx:, :]
+        
+        return power1, power2
