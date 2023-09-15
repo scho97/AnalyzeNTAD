@@ -2,9 +2,12 @@
 
 """
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
-from osl_dynamics.analysis import power
+from osl_dynamics.analysis import power, static
+from osl_dynamics.data import Data
+from utils.data import get_subject_ids, load_group_information
 
 ##################
 ##     PSDs     ##
@@ -92,3 +95,110 @@ class SubjectStaticPowerMap():
         power2 = power_maps[divide_idx:, :]
         
         return power1, power2
+    
+####################
+##  Connectivity  ##
+####################
+
+def compute_aec(dataset_dir,
+                data_space,
+                modality,
+                sampling_frequency,
+                freq_range,
+                tmp_dir,
+    ):
+    """Compute subject-level AEC matrices of each group in NTAD.
+
+    Parameters
+    ----------
+    dataset_dir : str
+        Path to the directory containing subject data.
+    data_space : str
+        Data measurement space. Should be either "sensor" or "source".
+    modality : str
+        Type of data modality. Currently supports only "eeg" and "meg".
+    sampling_frequency : int
+        Sampling frequency of the measured data.
+    freq_range : list of int
+        Upper and lower frequency bounds for filtering signals to calculate
+        amplitude envelope.
+    tmp_dir : str
+        Path to a temporary directory for building a traning dataset.
+        For further information, see data.Data() in osl-dynamics package.
+
+    Returns
+    -------
+    conn_map : np.ndarray
+        AEC functional connectivity matrix. Shape is (n_subjects, n_channels, n_channels).
+    conn_map_an : np.ndarray
+        `conn_map` for amyloid negative participants.
+    conn_map_ap : np.ndarray
+        `conn_map` for amyloid positive participants.
+    """
+
+    # Validation
+    data_type = os.path.basename(dataset_dir)
+    if data_type not in ["preproc", "src"]:
+        raise ValueError("data_type should be either 'preproc' or 'src'.")
+    if data_type == "preproc":
+        assert data_space == "sensor", "data_space should be 'sensor'."
+    if data_type == "src":
+        assert data_space == "source", "data_space should be 'source'."
+    
+    # Load group information
+    subject_ids, n_subjects = get_subject_ids(dataset_dir, modality)
+    an_idx, ap_idx = load_group_information(subject_ids)
+    print("Number of subjects: {} (AN={}, AP={})".format(n_subjects, len(an_idx), len(ap_idx)))
+
+    # Load data
+    file_names = []    
+    for id in subject_ids:
+        if data_space == "source":
+            pick_name = "misc"
+            file_path = os.path.join(dataset_dir, f"{modality}/{id}/sflip_parc-raw.fif")
+        elif data_space == "sensor":
+            pick_name = modality
+            file_path = os.path.join(dataset_dir, f"{modality}/{id}_resting_close_bl_raw_tsss" 
+                                     + f"/{id}_resting_close_bl_tsss_preproc_raw.fif")
+        file_names.append(file_path)
+
+    # Build training data
+    training_data = Data(file_names, picks=pick_name, reject_by_annotation="omit", store_dir=tmp_dir)
+
+    # Separate data into groups
+    input_data = [x for x in training_data.arrays]
+    if input_data[0].shape[0] < input_data[0].shape[1]:
+        print("Reverting dimension to (samples x channels) ...")
+        input_data = [x.T for x in input_data]
+    print("Total # of channels/parcels: ", input_data[0].shape[1])
+    print("Shape of the single subject input data: ", np.shape(input_data[0]))
+    data = Data(input_data, store_dir=tmp_dir, sampling_frequency=sampling_frequency)
+
+    # Prepare data to compute amplitude envelope
+    data.prepare(
+        methods = {
+            "filter": {"low_freq": freq_range[0], "high_freq": freq_range[1]},
+            "amplitude_envelope": {},
+            "standardize": {},
+        }
+    )
+    ts = data.time_series()
+
+    # Calculate functional connectivity using AEC
+    conn_map = static.functional_connectivity(ts, conn_type="corr")
+
+    # Get AEC by young and old participant groups
+    conn_map_an = static.functional_connectivity(
+        [ts[idx] for idx in an_idx],
+        conn_type="corr",
+    )
+    conn_map_ap = static.functional_connectivity(
+        [ts[idx] for idx in ap_idx],
+        conn_type="corr",
+    )
+
+    # Clean up
+    training_data.delete_dir()
+    data.delete_dir()
+
+    return conn_map, conn_map_an, conn_map_ap
