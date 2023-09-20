@@ -132,7 +132,7 @@ if modality == "meg":
             - pick_types: {meg: true, eeg: false, eog: true, ecg: true, stim: true, ref_meg: false}
             - crop: {tmin: 20}
             - filter: {l_freq: 0.5, h_freq: 125, method: 'iir', iir_params: {order: 5, ftype: butter}}
-            - notch_filter: {freqs: 50 100}
+            - notch_filter: {freqs: 28 50 100, notch_widths: 2}
             - resample: {sfreq: 250, n_jobs: 1}
             - bad_segments: {segment_len: 600, picks: 'mag'}
             - bad_segments: {segment_len: 600, picks: 'grad'}
