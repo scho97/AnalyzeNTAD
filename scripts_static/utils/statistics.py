@@ -46,7 +46,7 @@ def cluster_perm_test(x1, x2, bonferroni_ntest=None):
     t_obs, clusters, cluster_pv, H0 = mne.stats.permutation_cluster_test(
         X,
         threshold=3, # cluster-forming threshold
-        n_permutations=1500,
+        n_permutations=5000,
         tail=0,
         stat_fun=mne.stats.ttest_ind_no_p,
         adjacency=None,
