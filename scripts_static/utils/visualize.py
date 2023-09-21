@@ -12,8 +12,8 @@ from osl_dynamics import files, analysis
 from osl_dynamics.analysis import power
 from osl_dynamics.utils import plotting
 from osl_dynamics.utils.parcellation import Parcellation
-from nilearn.plotting import plot_markers, plot_glass_brain
-from matplotlib.colors import LinearSegmentedColormap, Normalize
+from nilearn.plotting import plot_glass_brain
+from matplotlib.colors import LinearSegmentedColormap, Normalize, CenteredNorm
 from utils import (min_max_scale,
                    round_nonzero_decimal,
                    round_up_half)
@@ -226,6 +226,7 @@ def plot_surfaces(
     parcellation_file,
     vmin=None,
     vmax=None,
+    symmetric_cbar=True,
     figure=None,
     axis=None,
 ):
@@ -244,6 +245,8 @@ def plot_surfaces(
         Minimum value of the data. Acts as a lower bound of the colormap.
     vmax : float
         Maximum value of the data. Acts as an upper bound of the colormap.
+    symmetric_cbar : bool
+        Whether the colorbar should be symmetric. Defaults to True.
     figure : matplotlib.pyplot.Figure
         Matplotlib figure object.
     axis : matplotlib.axes.axes
@@ -265,6 +268,11 @@ def plot_surfaces(
     # Load the mask
     mask = nib.load(mask_file)
 
+    # Reset color ranges if symmetric
+    if symmetric_cbar:
+        vmax = np.max(np.abs([vmin, vmax]))
+        vmin = -vmax
+
     # Plot the surface map
     nii = nib.Nifti1Image(data_map, mask.affine, mask.header)
     plot_glass_brain(
@@ -279,6 +287,7 @@ def plot_surfaces(
         vmin=vmin,
         vmax=vmax,
         plot_abs=False,
+        symmetric_cbar=symmetric_cbar,
     )
 
     return None
@@ -320,7 +329,7 @@ def create_transparent_cmap(name, n_colors=256):
 
     return cmap
 
-def categrozie_pvalue(pval):
+def categorize_pvalue(pval):
     """Assigns a label indicating statistical significance that corresponds 
     to an input p-value.
 
@@ -469,11 +478,6 @@ class GroupPSDDifference():
             vmin_top, vmax_top = self._get_minmax(self.gpsd_diff[:, alpha_range])
             vmin_bottom, vmax_bottom = np.min(topo_data), np.max(topo_data)
 
-        # Rescale topomap values to [-1, 1] for the asymmetric color scale
-        if self.data_space == "source":
-            gpsd_data = min_max_scale(gpsd_data)
-            topo_data = min_max_scale(topo_data)
-
         # Visualize
         if self.data_space == "source":
             # Start a figure object
@@ -493,34 +497,20 @@ class GroupPSDDifference():
             ax.fill_between(self.freqs, self.gpsd_diff_avg - self.gpsd_diff_sde, self.gpsd_diff_avg + self.gpsd_diff_sde, color="tab:red", alpha=0.3, zorder=max_zorder + 1)
             # Plot topomaps for the alpha band
             topo_centers = np.linspace(0, 1, len(topo_freq_top) + 2)[1:-1]
-            topo_type = "surface"
             for i in range(len(topo_freq_top)):
                 topo_pos = [topo_centers[i] - 0.2, 1.1, 0.25, 0.25]
                 topo_ax = ax.inset_axes(topo_pos)
                 # Plot parcel topographical map
-                if topo_type == "marker":
-                    plot_markers(
-                        gpsd_data[i],
-                        self.roi_centers,
-                        display_mode='z',
-                        node_size=20,
-                        node_vmin=-1,
-                        node_vmax=1,
-                        alpha=0.9,
-                        colorbar=False,
-                        node_cmap=plt.cm.Spectral_r,
-                        axes=topo_ax,
-                    )
-                elif topo_type == "surface":
-                    plot_surfaces(
-                        gpsd_data[i],
-                        self.mask_file,
-                        self.parcellation_file,
-                        vmin=-1,
-                        vmax=1,
-                        figure=fig,
-                        axis=topo_ax,
-                    )
+                plot_surfaces(
+                    gpsd_data[i],
+                    self.mask_file,
+                    self.parcellation_file,
+                    vmin=-vmin_top,
+                    vmax=vmax_top,
+                    figure=fig,
+                    axis=topo_ax,
+                )
+                print("here", vmin_top, vmax_top)
                 # Connect frequencies to topographical map
                 xy = (float(topo_freq_top[i]), ax.get_ylim()[1])
                 con = matplotlib.patches.ConnectionPatch(xyA=xy, xyB=(np.mean(topo_ax.get_xlim()), topo_ax.get_ylim()[0]),
@@ -530,34 +520,19 @@ class GroupPSDDifference():
                 ax.axvline(x=topo_freq_top[i], color="tab:gray", lw=2)
             # Plot topomaps for the low frequency and beta band
             topo_centers = np.linspace(0, 1, len(topo_freq_bottom) + 2)[1:-1]
-            topo_type = "surface"
             for i in range(len(topo_freq_bottom)):
                 topo_pos = [topo_centers[i] - 0.2, -0.4, 0.25, 0.25]
                 topo_ax = ax.inset_axes(topo_pos)
                 # Plot parcel topographical map
-                if topo_type == "marker":
-                    plot_markers(
-                        topo_data[i],
-                        self.roi_centers,
-                        display_mode='z',
-                        node_size=20,
-                        node_vmin=-1,
-                        node_vmax=1,
-                        alpha=0.9,
-                        colorbar=False,
-                        node_cmap=plt.cm.Spectral_r,
-                        axes=topo_ax,
-                    )
-                elif topo_type == "surface":
-                    plot_surfaces(
-                        topo_data[i],
-                        self.mask_file,
-                        self.parcellation_file,
-                        vmin=-1,
-                        vmax=1,
-                        figure=fig,
-                        axis=topo_ax,
-                    )
+                plot_surfaces(
+                    topo_data[i],
+                    self.mask_file,
+                    self.parcellation_file,
+                    vmin=-vmin_bottom,
+                    vmax=vmax_bottom,
+                    figure=fig,
+                    axis=topo_ax,
+                )
                 # Connect frequencies to topographical map
                 xy = (float(topo_freq_bottom[i]), ax.get_ylim()[0])
                 con = matplotlib.patches.ConnectionPatch(xyA=xy, xyB=(np.mean(topo_ax.get_xlim()), topo_ax.get_ylim()[0]),
@@ -593,7 +568,8 @@ class GroupPSDDifference():
             ax.fill_between(self.freqs, self.gpsd_diff_avg - self.gpsd_diff_sde, self.gpsd_diff_avg + self.gpsd_diff_sde, color="tab:red", alpha=0.3, zorder=max_zorder + 1)
             # Plot topomaps for the alpha band
             topo_centers = np.linspace(0, 1, len(topo_freq_top) + 2)[1:-1]
-            cnorm_top = Normalize(vmin=vmin_top, vmax=vmax_top)
+            vtop = np.max(np.abs([vmin_top, vmax_top]))
+            cnorm_top = CenteredNorm(vcenter=0, halfrange=vtop)
             if self.modality == "eeg":
                 topo_raw = self.raw.copy().pick_types(eeg=True, meg=False).reorder_channels(ch_names)
                 for i in range(len(topo_freq_top)):
@@ -624,7 +600,8 @@ class GroupPSDDifference():
                     ax.axvline(x=topo_freq_top[i], color="tab:gray", lw=2)
             # Plot topomaps for the low frequency and beta band
             topo_centers = np.linspace(0, 1, len(topo_freq_bottom) + 2)[1:-1]
-            cnorm_bottom = Normalize(vmin=vmin_bottom, vmax=vmax_bottom)
+            vbottom = np.max(np.abs([vmin_bottom, vmax_bottom]))
+            cnorm_bottom = CenteredNorm(vcenter=0, halfrange=vbottom)
             if self.modality == "eeg":
                 topo_raw = self.raw.copy().pick_types(eeg=True, meg=False).reorder_channels(ch_names)
                 for i in range(len(topo_freq_bottom)):
@@ -674,25 +651,30 @@ class GroupPSDDifference():
         cb_ax = ax.inset_axes([0.78, 1.12, 0.03, 0.22])
         cmap = plt.cm.Spectral_r
         if self.data_space == "source":
-            norm = Normalize(vmin=vmin_top, vmax=vmax_top)
+            vtop = np.max(np.abs([vmin_top, vmax_top]))
+            norm = Normalize(vmin=-vtop, vmax=vtop)
             cb = plt.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cb_ax, orientation="vertical")
+            cb.ax.set_yticks([-vtop, 0, vtop])
         elif self.data_space == "sensor":
             cb = plt.colorbar(matplotlib.cm.ScalarMappable(norm=cnorm_top, cmap=cmap), cax=cb_ax, orientation="vertical")
-        if (vmin_top < 10 * vmax_top) or (vmax_top < 10 * vmin_top):
-            cb.ax.set_yticks([vmin_top, np.mean([vmin_top, vmax_top]), vmax_top])
-        else:
-            cb.ax.set_yticks([vmin_top, 0, vmax_top])
+            cb.ax.set_yticks([-vtop, 0, vtop])
+        # if (vmin_top < 10 * vmax_top) or (vmax_top < 10 * vmin_top):
+        #     cb.ax.set_yticks([vmin_top, np.mean([vmin_top, vmax_top]), vmax_top])
+        # else:
+        #     cb.ax.set_yticks([vmin_top, 0, vmax_top])
         cb.ax.set_ylabel("PSD (a.u.)", fontsize=12)
         cb.ax.ticklabel_format(style="scientific", axis="y", scilimits=(-2, 4))
         # Add manual colorbar for topographies at the bottom
         cb_ax = ax.inset_axes([0.78, -0.38, 0.03, 0.22])
         cmap = plt.cm.Spectral_r
         if self.data_space == "source":
-            norm = Normalize(vmin=vmin_bottom, vmax=vmax_bottom)
+            vbottom = np.max(np.abs([vmin_bottom, vmax_bottom]))
+            norm = Normalize(vmin=-vbottom, vmax=vbottom)
             cb = plt.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cb_ax, orientation="vertical")
+            cb.ax.set_yticks([-vbottom, 0, vbottom])
         elif self.data_space == "sensor":
             cb = plt.colorbar(matplotlib.cm.ScalarMappable(norm=cnorm_bottom, cmap=cmap), cax=cb_ax, orientation="vertical")
-        cb.ax.set_yticks([vmin_bottom, 0, vmax_bottom])
+            cb.ax.set_yticks([-vbottom, 0, vbottom])
         cb.ax.set_ylabel("PSD (a.u.)", fontsize=12)
         cb.ax.ticklabel_format(style='scientific', axis='y', scilimits=(-2, 4))
 
