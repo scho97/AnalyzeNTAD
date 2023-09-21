@@ -3,12 +3,13 @@
 """
 
 # Set up dependencies
-import os, pickle
+import os
+import pickle
 import numpy as np
 from sys import argv
 from osl_dynamics import data
 from osl_dynamics.analysis.static import power_spectra
-from utils.data import get_subject_ids, load_group_information
+from utils.data import get_subject_ids
 
 
 if __name__ == "__main__":
@@ -32,10 +33,7 @@ if __name__ == "__main__":
 
     # Load group information
     subject_ids, n_subjects = get_subject_ids(SRC_DIR, modality)
-    an_idx, ap_idx = load_group_information(subject_ids)
-    print(f"Number of available subjects: {n_subjects} | AN={len(an_idx)} | AP={len(ap_idx)}")
-    if n_subjects != (len(an_idx) + len(ap_idx)):
-        raise ValueError("one or more groups lacking subjects.")
+    print(f"Number of available subjects: {n_subjects}")
 
     # Load data
     print("Loading data ...")
@@ -54,60 +52,40 @@ if __name__ == "__main__":
     print(f"Picking {pick_name.upper()} channels ...")
     training_data = data.Data(file_names, picks=pick_name, reject_by_annotation="omit", store_dir=TMP_DIR)
 
-    # Separate data into groups
+    # Get subject-wise data arrays
     input_data = [x for x in training_data.arrays]
     if input_data[0].shape[0] < input_data[0].shape[1]:
         print("Reverting dimension to (samples x channels) ...")
         input_data = [x.T for x in input_data]
-    input_an = [input_data[idx] for idx in an_idx]
-    input_ap = [input_data[idx] for idx in ap_idx]
     print("Total # of channels/parcels: ", input_data[0].shape[1])
-    print("Shape of the single subject input data: ", np.shape(input_an[0]))
+    print("Shape of the single subject input data: ", np.shape(input_data[0]))
 
     # Clean up
     training_data.delete_dir()
 
+    # Get sample sizes of data arrays
+    n_samples_input = [d.shape[0] for d in input_data]
+    # NOTE: This can be used later to calculate weights for each group.
+
     # Calculate subject-specific static power spectra
     print("Computing PSDs ...")
 
-    f_an, psd_an, w_an = power_spectra(
-        data=input_an,
+    freqs, psd, w = power_spectra(
+        data=input_data,
         window_length=int(Fs * 2),
         sampling_frequency=Fs,
         frequency_range=[1, 45],
         step_size=int(Fs),
         return_weights=True,
         standardize=True,
-    ) # for amyloid negative participants
-
-    f_ap, psd_ap, w_ap = power_spectra(
-        data=input_ap,
-        window_length=int(Fs * 2),
-        sampling_frequency=Fs,
-        frequency_range=[1, 45],
-        step_size=int(Fs),
-        return_weights=True,
-        standardize=True,
-    ) # for amyloid positive participants
-
-    if (f_an != f_ap).any():
-        raise ValueError("Frequency vectors of each age group do not match.")
-    freqs = f_an
-
-    # Get PSDs and weights of the entire dataset
-    psd = np.concatenate((psd_an, psd_ap), axis=0)
-    n_samples = [d.shape[0] for d in input_an + input_ap]
-    w = np.array(n_samples) / np.sum(n_samples)
+    ) # for entire participants
 
     # Save results
     print("Saving results ... ")
-    output = {"freqs": freqs,              
-              "psd_an": psd_an,
-              "psd_ap": psd_ap,
+    output = {"freqs": freqs,
               "psd": psd,
-              "weights_an": w_an,
-              "weights_ap": w_ap,
-              "weights": w}
+              "weights": w,
+              "n_samples": n_samples_input}
     with open(SAVE_DIR + "/psd.pkl", "wb") as output_path:
         pickle.dump(output, output_path)
     output_path.close()
