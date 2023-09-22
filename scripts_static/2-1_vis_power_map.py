@@ -17,7 +17,7 @@ if __name__ == "__main__":
     freq_range = [1, 45]
     band_name = "wide"
     print(f"[INFO] Modality: {modality.upper()} | Data Space: {data_space} | " + 
-          "Frequency Band: {band_name} ({freq_range[0]}-{freq_range[1]} Hz)")
+          f"Frequency Band: {band_name} ({freq_range[0]}-{freq_range[1]} Hz)")
 
     # Set parcellation file paths
     mask_file = "MNI152_T1_8mm_brain.nii.gz"

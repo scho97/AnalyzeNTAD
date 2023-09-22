@@ -16,7 +16,7 @@ if __name__ == "__main__":
     band_name = "wide"
     verbose = True
     print(f"[INFO] Modality: {modality.upper()} | Data Space: {data_space} | " + 
-          "Frequency Band: {band_name} ({freq_range[0]}-{freq_range[1]} Hz)")
+          f"Frequency Band: {band_name} ({freq_range[0]}-{freq_range[1]} Hz)")
 
     # Set directories
     BASE_DIR = "/home/scho/AnalyzeNTAD/results/static"
