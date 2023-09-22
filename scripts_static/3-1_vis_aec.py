@@ -7,6 +7,7 @@ import os
 import pickle
 import numpy as np
 from utils import visualize
+from utils.statistics import fit_glm
 from osl_dynamics.analysis import connectivity
 
 
@@ -29,16 +30,26 @@ if __name__ == "__main__":
     # Load data
     with open(os.path.join(SAVE_DIR, "aec.pkl"), "rb") as input_path:
         data = pickle.load(input_path)
-    conn_map = data["conn_map"]
-    conn_map_an = data["conn_map_an"]
-    conn_map_ap = data["conn_map_ap"]
-    # dimension: (n_subjects x n_channels x n_channels)
-    
-    # Average AEC across subjects to get group-level AEC maps
-    gconn_map_an = np.mean(conn_map_an, axis=0)
-    gconn_map_ap = np.mean(conn_map_ap, axis=0)
-    n_channels = gconn_map_an.shape[0] 
+    conn_maps = data["conn_maps"]
+    n_channels = conn_maps.shape[-1]
+    print("Shape of AEC maps: ", conn_maps.shape)
+    # dim: (n_subjects x n_channels x n_channels)
 
+    # Fit GLM on connectivity maps
+    aec_model, aec_design, aec_data = fit_glm(
+        conn_maps,
+        modality=modality,
+        dimension_labels=["Subjects", "Channels", "Channels"],
+    )
+
+    # Get group-level AEC maps
+    gconn_map_an = aec_model.betas[1]
+    gconn_map_ap = aec_model.betas[0]
+    # dim: (n_channels, n_channels)
+
+    print(gconn_map_an.shape)
+    print(gconn_map_ap.shape)
+    
     # Fill diagonal elements with NaNs for visualization
     np.fill_diagonal(gconn_map_an, np.nan)
     np.fill_diagonal(gconn_map_ap, np.nan)
@@ -58,16 +69,16 @@ if __name__ == "__main__":
             vmin=vmin, vmax=vmax,
         )
 
-    diff_map = gconn_map_ap - gconn_map_an # amyloid positive vs. amyloid negative
+    gconn_map_diff = gconn_map_ap - gconn_map_an # amyloid positive vs. amyloid negative
     visualize.plot_aec_heatmap(
-        heatmap=diff_map,
+        heatmap=gconn_map_diff,
         filename=os.path.join(SAVE_DIR, "aec_heatmap_diff.png"),
     )
 
     # Threshold connectivity matrices
     gconn_map_an = connectivity.threshold(gconn_map_an, percentile=97)
     gconn_map_ap = connectivity.threshold(gconn_map_ap, percentile=97)
-    diff_map = connectivity.threshold(diff_map, absolute_value=True, percentile=97)
+    gconn_map_diff = connectivity.threshold(gconn_map_diff, absolute_value=True, percentile=97)
 
     # Plot AEC graph networks
     print("Plotting AEC networks ...")
@@ -83,7 +94,7 @@ if __name__ == "__main__":
         filename=os.path.join(SAVE_DIR, "aec_network_ap.png"),
     )
     visualize.plot_group_connectivity_map(
-        conn_map=diff_map,
+        conn_map=gconn_map_diff,
         parcellation_file=parcellation_file,
         filename=os.path.join(SAVE_DIR, "aec_network_diff.png"),
     )

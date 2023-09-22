@@ -41,7 +41,7 @@ if __name__ == "__main__":
     )
 
     # Save results
-    output = {"conn_map": conn_map}
+    output = {"conn_maps": conn_map}
     with open(SAVE_DIR + "/aec.pkl", "wb") as output_path:
         pickle.dump(output, output_path)
     output_path.close()
