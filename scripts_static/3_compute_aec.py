@@ -14,7 +14,8 @@ if __name__ == "__main__":
     data_space = "source"
     frequency_band = [1, 45]
     band_name = "wide"
-    print(f"[INFO] Modality: {modality.upper()} | Data Space: {data_space} | Frequency Band: {band_name} ({frequency_band[0]}-{frequency_band[1]} Hz)")
+    print(f"[INFO] Modality: {modality.upper()} | Data Space: {data_space} | " + 
+          f"Frequency Band: {band_name} ({frequency_band[0]}-{frequency_band[1]} Hz)")
 
     # Set directory paths
     BASE_DIR = "/home/scho/AnalyzeNTAD/results"
@@ -30,7 +31,7 @@ if __name__ == "__main__":
 
     # Calculate subject-specific AEC
     print("Computing first-level AEC ...")
-    conn_map, conn_map_an, conn_map_ap = compute_aec(
+    conn_map = compute_aec(
         dataset_dir=dataset_dir,
         data_space=data_space,
         modality=modality,
@@ -40,11 +41,7 @@ if __name__ == "__main__":
     )
 
     # Save results
-    output = {
-        "conn_map": conn_map,
-        "conn_map_an": conn_map_an,
-        "conn_map_ap": conn_map_ap,
-    }
+    output = {"conn_map": conn_map}
     with open(SAVE_DIR + "/aec.pkl", "wb") as output_path:
         pickle.dump(output, output_path)
     output_path.close()

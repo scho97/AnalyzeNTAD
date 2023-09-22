@@ -101,7 +101,7 @@ def compute_aec(dataset_dir,
                 freq_range,
                 tmp_dir,
     ):
-    """Compute subject-level AEC matrices of each group in NTAD.
+    """Compute subject-level AEC matrices.
 
     Parameters
     ----------
@@ -124,10 +124,6 @@ def compute_aec(dataset_dir,
     -------
     conn_map : np.ndarray
         AEC functional connectivity matrix. Shape is (n_subjects, n_channels, n_channels).
-    conn_map_an : np.ndarray
-        `conn_map` for amyloid negative participants.
-    conn_map_ap : np.ndarray
-        `conn_map` for amyloid positive participants.
     """
 
     # Validation
@@ -181,18 +177,8 @@ def compute_aec(dataset_dir,
     # Calculate functional connectivity using AEC
     conn_map = static.functional_connectivity(ts, conn_type="corr")
 
-    # Get AEC by young and old participant groups
-    conn_map_an = static.functional_connectivity(
-        [ts[idx] for idx in an_idx],
-        conn_type="corr",
-    )
-    conn_map_ap = static.functional_connectivity(
-        [ts[idx] for idx in ap_idx],
-        conn_type="corr",
-    )
-
     # Clean up
     training_data.delete_dir()
     data.delete_dir()
 
-    return conn_map, conn_map_an, conn_map_ap
+    return conn_map
