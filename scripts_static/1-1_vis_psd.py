@@ -70,7 +70,7 @@ if __name__ == "__main__":
         dimension_labels=["Subjects", "Channels", "Frequency"],
     )
 
-    # Get group-level PSDs for each age group
+    # Get group-level PSDs
     gpsd = psd_model.copes[1]
     gpsd_an = psd_model.betas[1]
     gpsd_ap = psd_model.betas[0]
