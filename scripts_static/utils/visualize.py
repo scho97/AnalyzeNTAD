@@ -14,9 +14,7 @@ from osl_dynamics.utils import plotting
 from osl_dynamics.utils.parcellation import Parcellation
 from nilearn.plotting import plot_glass_brain
 from matplotlib.colors import LinearSegmentedColormap, Normalize, CenteredNorm
-from utils import (min_max_scale,
-                   round_nonzero_decimal,
-                   round_up_half)
+from utils import round_nonzero_decimal, round_up_half
 
 def plot_group_power_map(
         power_map,
@@ -356,11 +354,11 @@ class GroupPSDDifference():
     """
     Class for plotting the between-group spectral differences.
     """
-    def __init__(self, freqs, psd1, psd2, data_space, modality):
+    def __init__(self, freqs, gpsd1, gpsd2, data_space, modality):
         # Organize input parameters
         self.freqs = freqs
-        self.psd1 = psd1
-        self.psd2 = psd2
+        self.gpsd1 = gpsd1
+        self.gpsd2 = gpsd2
         self.data_space = data_space
         self.modality = modality
 
@@ -371,10 +369,8 @@ class GroupPSDDifference():
         )
 
     def prepare_data(self):
-        # Compute subject-averaged PSD differences
-        gpsd1 = np.average(self.psd1, axis=0)
-        gpsd2 = np.average(self.psd2, axis=0)
-        gpsd_diff = gpsd2 - gpsd1 # Group 2 vs. Group 1
+        # Compute group-level PSD differences
+        gpsd_diff = self.gpsd2 - self.gpsd1 # Group 2 vs. Group 1
         # dim: (n_subjects, n_parcels, n_freqs) -> (n_parcels, n_freqs)
 
         # Get ROI positions
@@ -404,7 +400,7 @@ class GroupPSDDifference():
             if self.modality == "meg":
                 # Re-order ROI positions of magnetometers
                 roi_centers_mag = raw._get_channel_positions()[mag_picks]
-                gpsd_diff_mag = (gpsd2 - gpsd1)[mag_picks] # select PSDs for magnetometer channels
+                gpsd_diff_mag = (self.gpsd2 - self.gpsd1)[mag_picks] # select PSDs for magnetometer channels
                 # NOTE: We only use magnetometer for MEG sensor data when plotting topographical map (visualisation purpose).
                 #       MEG CamCAN used only orthogonal planar gradiometers (i.e., no axial gradiometers)
                 # Repeat specifically for magnetometers
@@ -510,7 +506,6 @@ class GroupPSDDifference():
                     figure=fig,
                     axis=topo_ax,
                 )
-                print("here", vmin_top, vmax_top)
                 # Connect frequencies to topographical map
                 xy = (float(topo_freq_top[i]), ax.get_ylim()[1])
                 con = matplotlib.patches.ConnectionPatch(xyA=xy, xyB=(np.mean(topo_ax.get_xlim()), topo_ax.get_ylim()[0]),
@@ -640,8 +635,8 @@ class GroupPSDDifference():
         # Mark significant frequencies
         ymax = ax.get_ylim()[1] * 0.95
         for clu in clusters:
-            if len(clu[0]) > 1:
-                ax.plot(self.freqs[clu], [ymax] * len(clu[0]), color="tab:red", lw=5, alpha=0.7)
+            if len(clu) > 1:
+                ax.plot(self.freqs[clu], [ymax] * len(clu), color="tab:red", lw=5, alpha=0.7)
             else:
                 ax.plot(self.freqs[clu], ymax, marker="s", markersize=12,
                         markeredgecolor="tab:red", marker_edgewidth=12,
@@ -658,10 +653,6 @@ class GroupPSDDifference():
         elif self.data_space == "sensor":
             cb = plt.colorbar(matplotlib.cm.ScalarMappable(norm=cnorm_top, cmap=cmap), cax=cb_ax, orientation="vertical")
             cb.ax.set_yticks([-vtop, 0, vtop])
-        # if (vmin_top < 10 * vmax_top) or (vmax_top < 10 * vmin_top):
-        #     cb.ax.set_yticks([vmin_top, np.mean([vmin_top, vmax_top]), vmax_top])
-        # else:
-        #     cb.ax.set_yticks([vmin_top, 0, vmax_top])
         cb.ax.set_ylabel("PSD (a.u.)", fontsize=12)
         cb.ax.ticklabel_format(style="scientific", axis="y", scilimits=(-2, 4))
         # Add manual colorbar for topographies at the bottom
