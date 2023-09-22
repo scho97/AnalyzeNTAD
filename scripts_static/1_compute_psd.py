@@ -31,7 +31,7 @@ if __name__ == "__main__":
     os.makedirs(SAVE_DIR, exist_ok=True)
     os.makedirs(TMP_DIR, exist_ok=True)
 
-    # Load group information
+    # Load subject information
     subject_ids, n_subjects = get_subject_ids(SRC_DIR, modality)
     print(f"Number of available subjects: {n_subjects}")
 
