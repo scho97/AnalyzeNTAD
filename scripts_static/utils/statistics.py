@@ -225,7 +225,7 @@ def fit_glm(
     )
     design = DC.design_from_datainfo(glm_data.info)
     if plot_verbose:
-        design.plot_summary(savepath=save_path)
+        design.plot_summary(show=False, savepath=save_path)
 
     # Fit GLM model
     model = glm.fit.OLSModel(design, glm_data)
@@ -241,6 +241,7 @@ def max_stat_perm_test(
         n_perm=10000,
         metric="tstats",
         n_jobs=1,
+        return_perm=False,
     ):
     """Perform a max-t permutation test to evaluate statistical significance 
        for the given contrast.
@@ -257,17 +258,21 @@ def max_stat_perm_test(
         Dimension(s) to pool over.
     contrast_idx : int
         Index indicating which contrast to use. Dependent on glm_model.
-    n_perm : int
+    n_perm : int, optional
         Number of iterations to permute. Defaults to 10,000.
     metric : str, optional
         Metric to use to build the null distribution. Can be 'tstats' or 'copes'.
     n_jobs : int, optional
         Number of processes to run in parallel.
+    return_perm : bool, optional
+        Whether to return a glmtools permutation object. Defaults to False.
     
     Returns
     -------
     pvalues : np.ndarray
         P-values for the features. Shape is (n_features1, n_features2, ...).
+    perm : glm.permutations.MaxStatPermutation
+        Permutation object in the `glmtools` package.
     """
 
     # Run permutations and get null distributions
@@ -294,6 +299,8 @@ def max_stat_perm_test(
         percentiles = stats.percentileofscore(null_dist, copes)
     pvalues = 1 - percentiles / 100
 
+    if return_perm:
+        return pvalues, perm
     return pvalues
 
 def cluster_perm_test(
@@ -306,6 +313,7 @@ def cluster_perm_test(
         metric="tstats",
         bonferroni_ntest=1,
         n_jobs=1,
+        return_perm=False,
     ):
     """Perform a cluster permutation test to evaluate statistical significance 
        for the given contrast.
@@ -331,6 +339,8 @@ def cluster_perm_test(
         Bonferroni correction applied).
     n_jobs : int, optional
         Number of processes to run in parallel.
+    return_perm : bool, optional
+        Whether to return a glmtools permutation object. Defaults to False.
     
     Returns
     -------
@@ -341,6 +351,8 @@ def cluster_perm_test(
         List of ndarray, each of which contains the indices that form the given 
         cluster along the tested dimension. If bonferroni_ntest was given, clusters 
         after Bonferroni correction are returned.
+    perm : glm.permutations.ClusterPermutation
+        Permutation object in the `glmtools` package.
     """
 
     # Get metric values and define cluster forming threshold
@@ -379,6 +391,8 @@ def cluster_perm_test(
         for n in range(1, n_clusters + 1)
     ]
 
+    if return_perm:
+        return obs, clusters, perm
     return obs, clusters
 
 def cluster_perm_test_mne(x1, x2, bonferroni_ntest=None):
