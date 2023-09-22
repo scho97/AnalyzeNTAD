@@ -89,12 +89,6 @@ class SubjectStaticPowerMap():
         print("Shape of power maps: ", power_maps.shape)
         
         return power_maps
-
-    def separate_by_group(self, power_maps, divide_idx):
-        power1 = power_maps[:divide_idx, :]
-        power2 = power_maps[divide_idx:, :]
-        
-        return power1, power2
     
 ####################
 ##  Connectivity  ##

@@ -5,7 +5,6 @@
 # Set up dependencies
 import os
 import pickle
-import numpy as np
 from utils.analysis import SubjectStaticPowerMap
 
 
@@ -16,7 +15,8 @@ if __name__ == "__main__":
     freq_range = [1, 45]
     band_name = "wide"
     verbose = True
-    print(f"[INFO] Modality: {modality.upper()} | Data Space: {data_space} | Frequency Band: {band_name} ({freq_range[0]}-{freq_range[1]} Hz)")
+    print(f"[INFO] Modality: {modality.upper()} | Data Space: {data_space} | " + 
+          "Frequency Band: {band_name} ({freq_range[0]}-{freq_range[1]} Hz)")
 
     # Set directories
     BASE_DIR = "/home/scho/AnalyzeNTAD/results/static"
@@ -29,14 +29,11 @@ if __name__ == "__main__":
         data = pickle.load(input_path)
     
     freqs = data["freqs"]
-    psd_an = data["psd_an"]
-    psd_ap = data["psd_ap"]
-    psds = np.concatenate((psd_an, psd_ap), axis=0)
+    psds = data["psd"]
     n_subjects = psds.shape[0]
-    n_amyloid_neg = psd_an.shape[0]
 
     print("PSD shape: ", psds.shape)
-    print("PSD loaded. Total {} subjects | AN: {} | AP: {}".format(n_subjects, psd_an.shape[0], psd_ap.shape[0]))
+    print(f"PSD loaded. Total {n_subjects} subjects")
 
     # Initiate save object
     output = {"freqs": freqs}
@@ -48,16 +45,10 @@ if __name__ == "__main__":
     if verbose:
         PM.plot_psd(filename=os.path.join(SAVE_DIR, "subject_psds.png"))
 
-    # Compute power maps
+    # Compute and save power maps
     print(f"Computing power maps ({band_name.upper()}: {freq_range[0]}-{freq_range[1]} Hz) ...")
     power_maps = PM.compute_power_map(freq_range=freq_range)
-    power_an, power_ap = PM.separate_by_group(power_maps, n_amyloid_neg)
-
-    # Save power maps
-    output["power_map_an"] = power_an
-    output["power_map_ap"] = power_ap
-    print("Shape of AN power map: ", power_an.shape)
-    print("Shape of AP power map: ", power_ap.shape)
+    output["power_maps"] = power_maps
 
     # Save results
     with open(os.path.join(SAVE_DIR, "power.pkl"), "wb") as output_path:
