@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import glmtools as glm
 from osl_dynamics import analysis
 from utils.array_ops import round_nonzero_decimal, round_up_half
+from utils.statistics import fit_glm, max_stat_perm_test
 from utils.visualize import create_transparent_cmap
 
 
@@ -38,94 +39,67 @@ if __name__ == "__main__":
     print("Loading data ...")
     with open(os.path.join(SAVE_DIR, f"{data_type}.pkl"), "rb") as input_path:
         data = pickle.load(input_path)
+    input_path.close()
 
-    if data_type == "aec":
-        A = data["conn_map_an"]
-        B = data["conn_map_ap"]
-        n_parcels = A.shape[1]
-        i, j = np.triu_indices(A.shape[1], 1) # excluding diagonals
-        m, n = np.tril_indices(A.shape[1], -1) # excluding diagonals
-        A = np.array([a[i, j] for a in A])
-        B = np.array([b[i, j] for b in B])
-        dimension_labels = ['Subjects', 'Connections']
-        pooled_dim = (1)
-        # dim: n_subjects x n_connections
-    elif data_type == "power":
-        A = data["power_map_an"]
-        B = data["power_map_ap"]
-        n_parcels = A.shape[1]
-        dimension_labels = ['Subjects', 'Parcels']
-        pooled_dim = (1)
-        # dim: n_subjects x n_parcels
-    n_amyloid_neg = A.shape[0]
-    n_amyloid_pos = B.shape[0]
+    if data_type == "power":
+        input_data = data["power_maps"]
+        # dim: (n_subjects, n_channels)
+        n_channels = input_data.shape[-1]
+        dimension_labels = ["Subjects", "Channels"]
+    elif data_type == "aec":
+        input_data = data["conn_maps"]
+        n_channels = input_data.shape[-1]
+        i, j = np.triu_indices(n_channels, 1) # excluding diagonals
+        m, n = np.tril_indices(n_channels, -1) # excluding diagonals
+        input_data = np.array([d[i, j] for d in input_data])
+        # NOTE: We flatten the upper triangle of connectivity matrices.
+        # dim: (n_subjects, n_connections)
+        dimension_labels = ["Subjects", "Connections"]
+    pooled_dims = 1
 
-    # Stack data
-    X = np.concatenate((A, B), axis=0)
-
-    # Create condition vector
-    conds = np.concatenate((np.repeat((1,), n_amyloid_neg), np.repeat((2,), n_amyloid_pos)))
-
-    # Create GLM Dataset
-    data = glm.data.TrialGLMData(
-        data=X,
-        category_list=conds,
-        dim_labels=dimension_labels,
+    # Fit GLM on specified data
+    glm_model, glm_design, glm_data = fit_glm(
+        input_data,
+        modality=modality,
+        dimension_labels=dimension_labels,
+        plot_verbose=True,
+        save_path=os.path.join(SAVE_DIR, "design.png"),
     )
 
-    # Create design matrix template
-    DC = glm.design.DesignConfig()
-    DC.add_regressor(name='A', rtype='Categorical', codes=1)
-    DC.add_regressor(name='B', rtype='Categorical', codes=2)
-    DC.add_contrast(name='GroupDiff', values=[-1, 1]) # amyloid negative - amyloid positive
-
-    # Create actual design matrix by combining template with data
-    des = DC.design_from_datainfo(data.info)
-    plot_design = False
-    if plot_design:
-        des.plot_summary(savepath=os.path.join(SAVE_DIR, "design.png")) # show two-column design_matrix
-
-    # Fit model
-    model = glm.fit.OLSModel(des, data)
-
-    print("Shape of Beta: ", model.betas.shape) # contains parameter estimates - should be [n_regressors x n_parcels]
-    print("Shape of COPE: ", model.copes.shape) # contains parameter estimate contrasts - should be [n_contrasts x n_parcels]
-    print("Shape of t-Statistics: ", model.tstats.shape) # contains tstats - should be [n_contrasts x n_parcels]
-
-    # Run permutations
-    # NOTE: Here, we use a maximum statistic approach to correct for 
-    # multiple comparisons acorss parcels.
-    P = glm.permutations.MaxStatPermutation(
-        design=des,
-        data=data,
+    # Perform a max-t permutation test
+    pval, perm = max_stat_perm_test(
+        glm_model,
+        glm_data,
+        glm_design,
+        pooled_dims,
         contrast_idx=0,
-        nperms=10000,
-        metric='tstats',
-        tail=0,
-        pooled_dims=pooled_dim,
+        metric="tstats",
+        return_perm=True,
     )
+    pval *= bonferroni_ntest # apply Bonferroni correction
+    null_dist = perm.nulls # dim: (n_perm,)
 
-    # Get critical values for range of thresholds
-    percentiles = [100 - p_alpha for p_alpha in (np.array([0.05, 0.01]) / (2 * bonferroni_ntest)) * 100]
-    thresh = P.get_thresh(percentiles)
-    print("Percentiles: ", percentiles)
-    print("Thresholds: ", thresh)
+    # Get critical threshold value
+    p_alpha = 100 - (0.05 / (2 * bonferroni_ntest)) * 100
+    thresh = perm.get_thresh(p_alpha)
+    # NOTE: We use 0.05 as our alpha threshold.
+    print(f"Metric threshold: {thresh:.3f}")
 
     # Plot null distribution and threshold
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7, 4))
-    ax.hist(P.nulls, bins=50, histtype="step", density=True)
-    ax.axvline(thresh[0], color='black', linestyle='--')
+    ax.hist(null_dist, bins=50, histtype="step", density=True)
+    ax.axvline(thresh, color='black', linestyle='--')
     ax.set_xlabel('Max t-statistics')
     ax.set_ylabel('Density')
-    ax.set_title('Threshold: {:.3f}'.format(thresh[0]))
+    ax.set_title('Threshold: {:.3f}'.format(thresh))
     plt.savefig(os.path.join(SAVE_DIR, "null_dist.png"))
     plt.close(fig)
 
     # Plot the results
     if data_type == "aec":
         # Get t-map
-        tmap = np.zeros((n_parcels, n_parcels))
-        tmap[i, j] = model.tstats[0]
+        tmap = np.zeros((n_channels, n_channels))
+        tmap[i, j] = glm_model.tstats[0]
         tmap[m, n] = tmap.T[m, n] # make matrix symmetrical
         # alternatively: tmap = tmap + tmap.T
 
@@ -169,7 +143,7 @@ if __name__ == "__main__":
 
         # Plot thresholded graph network
         tmap_thr = tmap.copy()
-        thr_idx = np.logical_or(tmap > thresh[0], tmap < -thresh[0])
+        thr_idx = pval < 0.05
         if np.sum(thr_idx) > 0:
             tmap_thr = np.multiply(tmap_thr, thr_idx)
             cmap = "RdBu_r"
@@ -188,10 +162,10 @@ if __name__ == "__main__":
         cb_ax.tick_params(labelsize=20)
         fig.savefig(savename, transparent=True)
         plt.close()
-
+    
     if data_type == "power":
         # Get t-map
-        tmap = model.tstats[0]
+        tmap = glm_model.tstats[0]
 
         # Plot power map of t-statistics
         figures, axes = analysis.power.save(
@@ -221,9 +195,9 @@ if __name__ == "__main__":
 
         # Plot power map of thresholded t-statistics
         tmap_thr = tmap.copy()
-        thr_idx = np.logical_or(tmap > thresh[0], tmap < -thresh[0])
-        tmap_thr = np.multiply(tmap_thr, thr_idx)
+        thr_idx = pval < 0.05
         if np.sum(thr_idx) > 0:
+            tmap_thr = np.multiply(tmap_thr, thr_idx)
             cmap = "RdBu_r"
             savename = os.path.join(SAVE_DIR, "map_tscore_thr.png")
         else:
