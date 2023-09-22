@@ -5,6 +5,7 @@
 # Set up dependencies
 import os
 import pickle
+import mne
 import numpy as np
 from sys import argv
 from osl_dynamics import data
@@ -48,21 +49,43 @@ if __name__ == "__main__":
                                      + f"/{id}_resting_close_bl_tsss_preproc_raw.fif")
         file_names.append(file_path)
 
-    # Build training data
-    print(f"Picking {pick_name.upper()} channels ...")
-    training_data = data.Data(file_names, picks=pick_name, reject_by_annotation="omit", store_dir=TMP_DIR)
+    # Get subject-wise signal recordings
+    if (modality == "eeg") and (data_space == "sensor"):
+        input_data = []
+        for file_path in file_names:
+            # Get subject-wise data arrays
+            raw = mne.io.read_raw_fif(file_path, verbose=False)
+            data_array = raw.get_data(picks=pick_name, reject_by_annotation="omit", verbose=False).T
+            data_array = data_array.astype(np.float32)
+            raw.close()
 
-    # Get subject-wise data arrays
-    input_data = [x for x in training_data.arrays]
-    if input_data[0].shape[0] < input_data[0].shape[1]:
-        print("Reverting dimension to (samples x channels) ...")
-        input_data = [x.T for x in input_data]
+            # Load common EEG sensor indices
+            with open(BASE_DIR + "/data/common_eeg_sensor.pkl", "rb") as input_path:
+                common_eeg_idx = pickle.load(input_path)
+            input_path.close()
+
+            # Retain common EEG sensors
+            n_sensors = data_array.shape[1]
+            if n_sensors == 66: n_sensors = 70
+            idx = common_eeg_idx[f"EasyCap{n_sensors}"]
+            input_data.append(data_array[:, idx])
+    else:
+        # Build training data
+        print(f"Picking {pick_name.upper()} channels ...")
+        training_data = data.Data(file_names, picks=pick_name, reject_by_annotation="omit", store_dir=TMP_DIR)
+
+        # Get subject-wise data arrays
+        input_data = [x for x in training_data.arrays]
+        if input_data[0].shape[0] < input_data[0].shape[1]:
+            print("Reverting dimension to (samples x channels) ...")
+            input_data = [x.T for x in input_data]
+
+        # Clean up
+        training_data.delete_dir()
+    
     print("Total # of channels/parcels: ", input_data[0].shape[1])
     print("Shape of the single subject input data: ", np.shape(input_data[0]))
-
-    # Clean up
-    training_data.delete_dir()
-
+    
     # Get sample sizes of data arrays
     n_samples_input = [d.shape[0] for d in input_data]
     # NOTE: This can be used later to calculate weights for each group.

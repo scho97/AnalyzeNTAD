@@ -3,6 +3,7 @@
 """
 
 import os
+import pickle
 import mne
 import numpy as np
 import nibabel as nib
@@ -383,6 +384,14 @@ class GroupPSDDifference():
             eeg_flag, meg_flag = False, False
             if self.modality == "eeg":
                 raw = mne.io.read_raw_fif("/ohba/pi/mwoolrich/scho/NTAD/preproc/eeg/P1058_resting_close_bl_raw_tsss/P1058_resting_close_bl_tsss_preproc_raw.fif")
+                # Select common sensor locations (to account for different EEG layouts)
+                if self.data_space == "sensor":
+                    eeg_ch_names = np.array(raw.info["ch_names"])[mne.pick_types(raw.info, eeg=True)]
+                    with open("/home/scho/AnalyzeNTAD/results/data/common_eeg_sensor.pkl", "rb") as input_path:
+                        common_eeg_idx = pickle.load(input_path)
+                    input_path.close()
+                    eeg_ch_names = eeg_ch_names[common_eeg_idx["EasyCap70"]]
+                    raw = raw.pick_channels(eeg_ch_names, ordered=True, verbose=None)
                 eeg_flag = True
             if self.modality == "meg":
                 raw = mne.io.read_raw_fif("/ohba/pi/mwoolrich/scho/NTAD/preproc/meg/P1007_resting_close_bl_raw_tsss/P1007_resting_close_bl_tsss_preproc_raw.fif")
