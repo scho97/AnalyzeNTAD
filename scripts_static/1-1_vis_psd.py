@@ -173,7 +173,7 @@ if __name__ == "__main__":
     pval_lbl = categorize_pvalue(pval[0])
 
     # Summarize results
-    print("Alpha peak shifts: {:.3e} +/ {:.3e}".format(
+    print("Alpha peak shifts: {:.3e} +/- {:.3e}".format(
         peak_model.copes[0][0],
         peak_model.varcopes[0][0],
     ))

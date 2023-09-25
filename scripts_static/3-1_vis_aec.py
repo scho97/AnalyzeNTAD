@@ -46,9 +46,6 @@ if __name__ == "__main__":
     gconn_map_an = aec_model.betas[1]
     gconn_map_ap = aec_model.betas[0]
     # dim: (n_channels, n_channels)
-
-    print(gconn_map_an.shape)
-    print(gconn_map_ap.shape)
     
     # Fill diagonal elements with NaNs for visualization
     np.fill_diagonal(gconn_map_an, np.nan)
