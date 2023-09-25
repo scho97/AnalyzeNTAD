@@ -143,7 +143,10 @@ if __name__ == "__main__":
 
         # Plot thresholded graph network
         tmap_thr = tmap.copy()
-        thr_idx = pval < 0.05
+        pval_map = np.zeros((n_channels, n_channels))
+        pval_map[i, j] = pval
+        pval_map[m, n] = pval_map.T[m, n] # make matrix symmetrical
+        thr_idx = pval_map > 0.05
         if np.sum(thr_idx) > 0:
             tmap_thr = np.multiply(tmap_thr, thr_idx)
             cmap = "RdBu_r"
