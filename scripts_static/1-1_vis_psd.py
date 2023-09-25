@@ -175,7 +175,7 @@ if __name__ == "__main__":
     # Summarize results
     print("Alpha peak shifts: {:.3e} +/- {:.3e}".format(
         peak_model.copes[0][0],
-        peak_model.varcopes[0][0],
+        np.sqrt(peak_model.varcopes[0][0]),
     ))
     print(f"Max-t permutation test p-value: {pval[0]:.3e} ({pval_lbl})")
 
