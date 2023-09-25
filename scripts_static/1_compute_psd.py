@@ -50,6 +50,7 @@ if __name__ == "__main__":
         file_names.append(file_path)
 
     # Get subject-wise signal recordings
+    print(f"Picking {pick_name.upper()} channels ...")
     if (modality == "eeg") and (data_space == "sensor"):
         input_data = []
         for file_path in file_names:
@@ -71,7 +72,6 @@ if __name__ == "__main__":
             input_data.append(data_array[:, idx])
     else:
         # Build training data
-        print(f"Picking {pick_name.upper()} channels ...")
         training_data = data.Data(file_names, picks=pick_name, reject_by_annotation="omit", store_dir=TMP_DIR)
 
         # Get subject-wise data arrays
