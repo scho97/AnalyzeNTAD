@@ -328,7 +328,7 @@ def plot_connectivity_map(
 
     return None
 
-def plot_selected_parcel_psd(edges, f, psd, filename, fontsize=22):
+def plot_selected_parcel_psd(edges, f, psd_mean, psd_se, filename, fontsize=22):
     """Plots PSDs of specified brain regions.
 
     Parameters
@@ -338,17 +338,17 @@ def plot_selected_parcel_psd(edges, f, psd, filename, fontsize=22):
         (n_modes, n_channels, n_channels).
     f : np.ndarray
         Frequencies of the power spectra.
-    psd : np.ndarray
-        Power spectra for each subject and state/mode. Shape is (n_subjects,
-        n_states, n_channels, n_freqs).
+    psd_mean : np.ndarray
+        Power spectra averaged over subjects. Shape is (n_states, n_channels, 
+        n_freqs).
+    psd_se : np.ndarray
+        Standard errors of power spectra over subjects. Shape is (n_states, 
+        n_channels, n_freqs).
     filename : str
         Path for saving the power map.
     fontsize : int
         Fontsize for axes ticks and labels. Defaults to 22.
     """
-
-    # Number of subjects
-    n_subjects = psd.shape[0]
 
     # Number of states/modes
     n_class = edges.shape[0]
@@ -358,13 +358,14 @@ def plot_selected_parcel_psd(edges, f, psd, filename, fontsize=22):
     vmin, vmax = 0, 0
     for n in range(n_class):
         parcel_idx = np.unique(np.concatenate(np.where(edges[n] == True)))
-        mode_psd = np.squeeze(psd[:, n, parcel_idx, :])
+        mode_psd_mean = np.squeeze(psd_mean[n, parcel_idx, :])
+        mode_psd_se = np.squeeze(psd_se[n, parcel_idx, :])
         psds.append(np.mean(
-            mode_psd, axis=(0, 1) # average over subjects and parcels
+            mode_psd_mean, axis=0 # average over selected channels
         ))
-        stes.append(
-            np.std(np.mean(mode_psd, axis=0), axis=0) / np.sqrt(n_subjects)
-        )
+        stes.append(np.mean(
+            mode_psd_se, axis=0 # average over selected channels
+        ))
         vmin = np.min([vmin, np.min(psds[n] - stes[n])])
         vmax = np.max([vmax, np.max(psds[n] + stes[n])])
     vmin = vmin - (vmax - vmin) * 0.10
