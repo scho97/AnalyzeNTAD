@@ -11,12 +11,9 @@ import matplotlib.pyplot as plt
 from osl_dynamics import analysis
 from osl_dynamics.utils import plotting
 from utils.array_ops import round_nonzero_decimal, round_up_half
-from utils.data import divide_psd_by_group
-from utils.statistics import (group_diff_mne_cluster_perm_2d,
-                              group_diff_cluster_perm_2d)
+from utils.statistics import fit_glm, cluster_perm_test
 from matplotlib.transforms import Bbox
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
 
 def plot_correlations(data1, data2, filename):
     """Computes correlation between the input data and plots 
@@ -401,7 +398,7 @@ def plot_selected_parcel_psd(edges, f, psd_mean, psd_se, filename, fontsize=22):
 
     return None
 
-def plot_mode_spectra_group_diff_2d(f, psd, ts, group_idx, method, bonferroni_ntest, filename, test_type="mne"):
+def plot_mode_spectra_group_diff(f, psd, subject_ids, group_assignments, method, modality, bonferroni_ntest, filename):
     """Plots state/mode-specific PSDs and their between-group statistical differences.
 
     This function tests statistical differences using a cluster permutation test on the
@@ -414,13 +411,16 @@ def plot_mode_spectra_group_diff_2d(f, psd, ts, group_idx, method, bonferroni_nt
     psd : np.ndarray
         Power spectra for each subject and state/mode. Shape must be (n_subjects,
         n_states, n_channels, n_freqs).
-    ts : list of np.ndarray
-        Time series data for each subject. Shape must be (n_subjects, n_samples,
-        n_channels).
-    group_idx : list of lists
-        List containing indices of subjects in each group.
+    subject_ids : list of str
+        Subject IDs corresponding to the input data.
+    group_assignments : list of lists
+        1D array containing gruop labels for input subjects. A value of 1 indicates
+        Group 1 (amyloid positive w/ MCI & AD) and a value of 2 indicates Group 2 
+        (amyloid negative).
     method : str
         Type of the dynamic model. Can be "hmm" or "dynemo".
+    modality : str
+        Type of the neuroimaging modality. Can be "eeg" or "meg".
     bonferroni_ntest : int
         Number of tests to use for Bonferroni correction. If None, Bonferroni
         correction will not take place.
@@ -437,11 +437,17 @@ def plot_mode_spectra_group_diff_2d(f, psd, ts, group_idx, method, bonferroni_nt
     elif method == "dynemo":
         lbl = "Mode"
 
-    # Get PSDs and weights for each group
-    psd_an, psd_ap, w_an, w_ap = divide_psd_by_group(psd, ts, group_idx)
-    gpsd_an = np.average(psd_an, axis=0, weights=w_an)
-    gpsd_ap = np.average(psd_ap, axis=0, weights=w_ap)
-    # dim (gpsd): (n_modes, n_parcels, n_freqs)
+    # Get group-averaged PSDs
+    psd_model, psd_design, psd_data = fit_glm(
+        psd,
+        subject_ids,
+        group_assignments,
+        modality=modality,
+        dimension_labels=["Subjects", "States/Modes", "Channels", "Frequency"],
+    )
+    gpsd_an = psd_model.betas[1]
+    gpsd_ap = psd_model.betas[0]
+    # dim: (n_modes, n_channels, n_freqs)
 
     # Build a colormap
     qcmap = plt.rcParams["axes.prop_cycle"].by_key()["color"] # qualitative
@@ -458,26 +464,24 @@ def plot_mode_spectra_group_diff_2d(f, psd, ts, group_idx, method, bonferroni_nt
                 k += 1
             
             # Perform cluster permutation tests on mode-specific PSDs
-            if test_type == "mne":
-                # Run permutation test
-                t_obs, clu_idx, _, _ = group_diff_mne_cluster_perm_2d(
-                    x1=psd_ap[:, n, :, :],
-                    x2=psd_an[:, n, :, :],
-                    bonferroni_ntest=bonferroni_ntest,
-                )
-            if test_type == "glmtools":
-                # Define group assignments
-                group_assignments = np.zeros((len(psd),))
-                group_assignments[group_idx[1]] = 1
-                group_assignments[group_idx[0]] = 2
-                # Run permutation test
-                t_obs, clu_idx = group_diff_cluster_perm_2d(
-                    data=psd[:, n, :, :],
-                    assignments=group_assignments,
-                    n_perm=1500,
-                    metric="tstats",
-                    bonferroni_ntest=bonferroni_ntest,
-                )
+            cpsd = np.mean(psd, axis=2)
+            cpsd_model, cpsd_design, cpsd_data = fit_glm(
+                cpsd[:, n, :],
+                subject_ids,
+                group_assignments,
+                modality=modality,
+                dimension_labels=["Subjects", "Frequency"],
+            )
+            t_obs, clu_idx = cluster_perm_test(
+                cpsd_model,
+                cpsd_data,
+                cpsd_design,
+                pooled_dims=(1,),
+                contrast_idx=0,
+                n_perm=1500,
+                metric="tstats",
+                bonferroni_ntest=bonferroni_ntest,
+            )
             n_clusters = len(clu_idx)
 
             # Average group-level PSDs over the parcels
@@ -538,26 +542,24 @@ def plot_mode_spectra_group_diff_2d(f, psd, ts, group_idx, method, bonferroni_nt
             print(f"Plotting {lbl} {n + 1}")
 
             # Perform cluster permutation tests on mode-specific PSDs
-            if test_type == "mne":
-                # Run permutation test
-                t_obs, clu_idx, _, _ = group_diff_mne_cluster_perm_2d(
-                    x1=psd_ap[:, n, :, :],
-                    x2=psd_an[:, n, :, :],
-                    bonferroni_ntest=bonferroni_ntest,
-                )
-            if test_type == "glmtools":
-                # Define group assignments
-                group_assignments = np.zeros((len(psd),))
-                group_assignments[group_idx[1]] = 1
-                group_assignments[group_idx[0]] = 2
-                # Run permutation test
-                t_obs, clu_idx = group_diff_cluster_perm_2d(
-                    data=psd[:, n, :, :],
-                    assignments=group_assignments,
-                    n_perm=1500,
-                    metric="tstats",
-                    bonferroni_ntest=bonferroni_ntest,
-                )
+            cpsd = np.mean(psd, axis=2)
+            cpsd_model, cpsd_design, cpsd_data = fit_glm(
+                cpsd[:, n, :],
+                subject_ids,
+                group_assignments,
+                modality=modality,
+                dimension_labels=["Subjects", "Frequency"],
+            )
+            t_obs, clu_idx = cluster_perm_test(
+                cpsd_model,
+                cpsd_data,
+                cpsd_design,
+                pooled_dims=(1,),
+                contrast_idx=0,
+                n_perm=1500,
+                metric="tstats",
+                bonferroni_ntest=bonferroni_ntest,
+            )
             n_clusters = len(clu_idx)
 
             # Average group-level PSDs over the parcels
@@ -604,7 +606,7 @@ def plot_mode_spectra_group_diff_2d(f, psd, ts, group_idx, method, bonferroni_nt
 
     return None
 
-def plot_pow_vs_coh(freqs, psd, coh, group_idx, method, filenames, freq_range = None, legend=False):
+def plot_pow_vs_coh(freqs, psd, coh, subject_ids, group_assignments, method, modality, filenames, freq_range = None, legend=False):
     """Saves a scatter plot of group-level power and coherence values for each group.
 
     Parameters
@@ -617,10 +619,16 @@ def plot_pow_vs_coh(freqs, psd, coh, group_idx, method, filenames, freq_range = 
     coh : np.ndarray
         Coherences for each state/mode. Shape is (n_subjects, n_states, n_channels,
         n_channels, n_freqs).
-    group_idx : list of lists
-        List containing indices of subjects in each group.
+    subject_ids : list of str
+        Subject IDs corresponding to the input data.
+    group_assignments : list of lists
+        1D array containing gruop labels for input subjects. A value of 1 indicates
+        Group 1 (amyloid positive w/ MCI & AD) and a value of 2 indicates Group 2 
+        (amyloid negative).
     method : str
         Type of the dynamic model. Can be "hmm" or "dynemo".
+    modality : str
+        Type of the neuroimaging modality. Can be "eeg" or "meg".
     filenames : list of str
         Paths for saving the figures.
     freq_range : list of int
@@ -636,31 +644,40 @@ def plot_pow_vs_coh(freqs, psd, coh, group_idx, method, filenames, freq_range = 
     elif method == "dynemo":
         lbl = "Mode"
 
+    # Compute power of each ROI for each mode
+    po = analysis.power.variance_from_spectra(freqs, psd, frequency_range=freq_range)
+    # dim: (n_subjects, n_states, n_channels)
+
+    # Compute sum of coherences between a given ROI and all others
+    co = analysis.connectivity.mean_coherence_from_spectra(freqs, coh, frequency_range=freq_range)
+    # dim: (n_subjects, n_modes, n_channels, n_channels)
+    sum_co = analysis.connectivity.mean_connections(co)
+    # dim: (n_subjects, n_modes, n_channels)
+
     # Get group-specific PSDs and coherences
-    pos, sum_cos = [], []
-    for group in group_idx:
-        psd_group = psd[group] # dim: (n_subjects, n_modes, n_parcels, n_freqs)
-        coh_group = coh[group] # dim: (n_subjects, n_modes, n_parcels, n_parcels, n_freqs)
-
-        # Compute power of each ROI for each mode
-        po = analysis.power.variance_from_spectra(freqs, psd_group, frequency_range=freq_range)
-        # dim: (n_subjects, n_modes, n_parcels)
-        pos.append(np.mean(po, axis=0))
-
-        # Compute sum of coherences between a given ROI and all others
-        co = analysis.connectivity.mean_coherence_from_spectra(freqs, coh_group, frequency_range=freq_range)
-        # dim: (n_subjects, n_modes, n_parcels, n_parcels)
-        co = np.mean(co, axis=0)
-        sum_co = analysis.connectivity.mean_connections(co)
-        # dim: (n_modes, n_parcels)
-        sum_cos.append(sum_co)
+    po_model, _, _ = fit_glm(
+        po,
+        subject_ids,
+        group_assignments,
+        modality=modality,
+        dimension_labels=["Subjects", "States/Modes", "Channels"],
+    )
+    sum_co_model, _, _ = fit_glm(
+        sum_co,
+        subject_ids,
+        group_assignments,
+        modality=modality,
+        dimension_labels=["Subjects", "States/Modes", "Channels"],
+    )
+    pos = [po_model.betas[1], po_model.betas[0]]
+    sum_cos = [sum_co_model.betas[1], sum_co_model.betas[0]]
 
     # Get axis limits
     hmin, hmax = _get_lim(pos)
     vmin, vmax = _get_lim(sum_cos)
 
     # Plot the relationships between PSDs and coherences
-    for g in range(len(group_idx)):
+    for g in range(len(pos)):
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
         for n in range(pos[g].shape[0]): # iterate across states/modes
             ax.scatter(pos[g][n], sum_cos[g][n], alpha=0.6, label=f"{lbl} {n + 1}")
