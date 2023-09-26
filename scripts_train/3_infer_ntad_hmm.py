@@ -124,7 +124,7 @@ if __name__ == "__main__":
         "n_embeddings": training_data.n_embeddings,
     }
 
-    with open(save_dir + "/ntad_hmm.pkl", "wb") as output_path:
+    with open(save_dir + f"/ntad_{modality}_hmm.pkl", "wb") as output_path:
         pickle.dump(outputs, output_path)
     output_path.close()
 
