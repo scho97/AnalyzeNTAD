@@ -145,7 +145,7 @@ if __name__ == "__main__":
         subject_ids = [subject_ids[idx] for idx in not_olr_idx]
         n_subjects = len(subject_ids)
         an_idx, ap_idx = load_group_information(subject_ids)
-        print("\tTotal {} subjects (after excluding outliers) | Young: {} | Old: {}".format(
+        print("\tTotal {} subjects (after excluding outliers) | AN: {} | AP: {}".format(
             n_subjects, len(an_idx), len(ap_idx),
         ))
 

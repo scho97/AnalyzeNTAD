@@ -86,7 +86,7 @@ if __name__ == "__main__":
         group_assignments = group_assignments[not_olr_idx]
         subject_ids = [subject_ids[idx] for idx in not_olr_idx]
         n_subjects -= len(outlier_idx)
-        print("\tTotal {} subjects | AN: {} | AP: {}".format(
+        print("\tTotal {} subjects (after excluding outliers) | AN: {} | AP: {}".format(
               n_subjects,
               np.count_nonzero(group_assignments == 2),
               np.count_nonzero(group_assignments == 1),
