@@ -110,7 +110,7 @@ if __name__ == "__main__":
         btc = modes.argmax_time_courses(alpha)
     if model_type == "dynemo":
         # Get DyNeMo mode time courses
-        btc = get_dynemo_mtc(alpha, Fs, DATA_DIR)
+        btc = get_dynemo_mtc(alpha, Fs, data_dir=DATA_DIR)
 
     # ----------- [3] ------------- #
     #      Summary Statistics       #
