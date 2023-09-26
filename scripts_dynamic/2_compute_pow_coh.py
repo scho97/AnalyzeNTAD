@@ -138,9 +138,6 @@ if __name__ == "__main__":
         psd = psd[not_olr_idx]
         coh = coh[not_olr_idx]
         print(f"\tPSD shape: {psd.shape} | Coherence shape: {coh.shape}")
-        # Recalculate weights
-        n_samples = [d.shape[0] for d in ts]
-        w = np.array(n_samples) / np.sum(n_samples)
         # Reassign group indices
         subject_ids = [subject_ids[idx] for idx in not_olr_idx]
         n_subjects = len(subject_ids)
