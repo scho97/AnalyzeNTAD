@@ -93,11 +93,108 @@ def fit_glm(
         )
     DC.add_contrast(
         name="GroupDiff",
-        values=[1, -1] + [0] * len(covariates)
+        values=[1, -1] + [0] * len(covariates),
     ) # amyloid positive - amyloid negative
     DC.add_contrast(
         name="GroupMean",
-        values=[0.5, 0.5] + [0] * len(covariates)
+        values=[0.5, 0.5] + [0] * len(covariates),
+    )
+    design = DC.design_from_datainfo(glm_data.info)
+    if plot_verbose:
+        design.plot_summary(show=False, savepath=save_path)
+
+    # Fit GLM model
+    model = glm.fit.OLSModel(design, glm_data)
+
+    return model, design, glm_data
+
+def fit_glm_confound_regression(
+        input_data,
+        subject_ids,
+        modality,
+        dimension_labels=None,
+        plot_verbose=False,
+        save_path=""
+    ):
+    """Fit a General Linear Model (GLM) to an input data given a design matrix
+       to perofrm confound regression.
+
+    Parameters
+    ----------
+    input_data : np.ndarray
+        Data to fit. Shape must be (n_subjects, n_features1, n_features2, ...).
+    subject_ids : list of str
+        Subject IDs corresponding to the input data.
+    modality : str
+        Type of neuroimaging modality.
+    dimension_labels : list of str
+        Labels for the dimensions of an input data. Defaults to None, in which 
+        case the labels will set as ["Subjects", "Features1", "Features2", ...].
+    plot_verbose : bool
+        Whether to plot the deisign matrix. Defaults to False.
+    save_path : str
+        File path to save the design matrix plot. Relevant only when plot_verbose 
+        is set to True.
+    
+    Returns
+    -------
+    model : glmtools.fit.OLSModel
+        A fiited GLM OLS model.
+    design : glmtools.design.DesignConfig
+        Design matrix object for GLM modelling.
+    glm_data : glmtools.data.TrialGLMData
+        Data object for GLM modelling.
+    """
+
+    # Validation
+    ndim = input_data.ndim
+    if ndim == 1:
+        raise ValueError("data must be 2D or greater.")
+
+    if dimension_labels is None:
+        dimension_labels = ["Subjects"] + [f"Features {i}" for i in range(1, ndim)]
+    
+    # Load meta data
+    df_meta = pd.read_excel(
+        "/home/scho/AnalyzeNTAD/scripts_data/all_data_info.xlsx"
+    )
+
+    # Define covariates (to regress out)
+    site_assignments = load_site_information(subject_ids)
+    scanner_assignments = load_scanner_information(subject_ids, df_meta, modality)
+    covariates = {
+        "site": site_assignments,
+        "scanner": scanner_assignments,
+    }
+
+    # Create GLM dataset
+    glm_data = glm.data.TrialGLMData(
+        data=input_data,
+        **covariates,
+        dim_labels=dimension_labels,
+    )
+
+    # Create design matrix
+    DC = glm.design.DesignConfig()
+    DC.add_regressor(name="Constant", rtype="Constant")
+    for name in covariates:
+        DC.add_regressor(
+            name=name,
+            rtype="Parametric",
+            datainfo=name,
+            preproc=None,
+        )
+    DC.add_contrast(
+        name="Intercept",
+        values=[1] + [0] * len(covariates),
+    )
+    DC.add_contrast(
+        name="ArtefactEffect",
+        values=[0, 1, 1],
+    )
+    DC.add_contrast(
+        name="ArtefactMean",
+        values=[1, 1, 1],
     )
     design = DC.design_from_datainfo(glm_data.info)
     if plot_verbose:
