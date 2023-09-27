@@ -491,8 +491,8 @@ def plot_mode_spectra_group_diff(f, psd, subject_ids, group_assignments, method,
             e_ap = np.std(gpsd_ap[n], axis=0) / np.sqrt(gpsd_ap.shape[0])
 
             # Plot mode-specific group-level PSDs
-            ax[k, j].plot(f, p_an, c=qcmap[n], label="Young")
-            ax[k, j].plot(f, p_ap, c=qcmap[n], label="Old", linestyle="--")
+            ax[k, j].plot(f, p_an, c=qcmap[n], label="AN")
+            ax[k, j].plot(f, p_ap, c=qcmap[n], label="AP", linestyle="--")
             ax[k, j].fill_between(f, p_an - e_an, p_an + e_an, color=qcmap[n], alpha=0.1)
             ax[k, j].fill_between(f, p_ap - e_ap, p_ap + e_ap, color=qcmap[n], alpha=0.1)
             if n_clusters > 0:
@@ -569,8 +569,8 @@ def plot_mode_spectra_group_diff(f, psd, subject_ids, group_assignments, method,
             e_ap = np.std(gpsd_ap[n], axis=0) / np.sqrt(gpsd_ap.shape[0])
 
             # Plot mode-specific group-level PSDs
-            ax.plot(f, p_an, c="k", label="Young")
-            ax.plot(f, p_ap, c="k", label="Old", linestyle="--")
+            ax.plot(f, p_an, c="k", label="AN")
+            ax.plot(f, p_ap, c="k", label="AP", linestyle="--")
             ax.fill_between(f, p_an - e_an, p_an + e_an, color="k", alpha=0.1)
             ax.fill_between(f, p_ap - e_ap, p_ap + e_ap, color="k", alpha=0.1)
             if n_clusters > 0:
