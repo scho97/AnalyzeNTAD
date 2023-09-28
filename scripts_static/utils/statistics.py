@@ -5,13 +5,11 @@
 import warnings
 import mne
 import numpy as np
-import pandas as pd
 import glmtools as glm
 from scipy import stats
 from utils.data import (get_subject_ids,
                         load_group_information,
-                        load_site_information,
-                        load_scanner_information)
+                        load_site_information)
 
 def _check_stat_assumption(samples1, samples2, ks_alpha=0.05, ev_alpha=0.05):
     """Checks normality of each sample and whether samples have an equal variance.
@@ -177,11 +175,6 @@ def fit_glm(
     print(f"Number of available subjects: {n_subjects} | AN={len(an_idx)} | AP={len(ap_idx)}")
     if n_subjects != (len(an_idx) + len(ap_idx)):
         raise ValueError("one or more groups lacking subjects.")
-    
-    # Load meta data
-    df_meta = pd.read_excel(
-        "/home/scho/AnalyzeNTAD/scripts_data/all_data_info.xlsx"
-    )
 
     # Define group assignments
     group_assignments = np.zeros((n_subjects,))
@@ -190,10 +183,9 @@ def fit_glm(
 
     # Define covariates (to regress out)
     site_assignments = load_site_information(subject_ids)
-    scanner_assignments = load_scanner_information(subject_ids, df_meta, modality)
     covariates = {
-        "site": site_assignments,
-        "scanner": scanner_assignments,
+        "Site (Oxford)": site_assignments,
+        "Site (Cambridge)": 1 - site_assignments,
     }
 
     # Create GLM dataset
@@ -213,15 +205,19 @@ def fit_glm(
             name=name,
             rtype="Parametric",
             datainfo=name,
-            preproc=None,
+            preproc="demean",
         )
     DC.add_contrast(
         name="GroupDiff",
-        values=[1, -1] + [0] * len(covariates)
+        values=[1, -1] + [0] * len(covariates),
     ) # amyloid positive - amyloid negative
     DC.add_contrast(
         name="GroupMean",
-        values=[0.5, 0.5] + [0] * len(covariates)
+        values=[0.5, 0.5] + [0] * len(covariates),
+    )
+    DC.add_contrast(
+        name="OverallMean",
+        values=[1, 1] + [0] * len(covariates),
     )
     design = DC.design_from_datainfo(glm_data.info)
     if plot_verbose:
