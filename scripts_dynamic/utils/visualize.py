@@ -2,6 +2,7 @@
 
 """
 
+import os
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -325,14 +326,11 @@ def plot_connectivity_map(
 
     return None
 
-def plot_selected_parcel_psd(edges, f, psd_mean, psd_se, filename, fontsize=22):
-    """Plots PSDs of specified brain regions.
+def plot_rsn_psd(f, psd_mean, psd_se, edges=None, filename=None, fontsize=22):
+    """Plots state/mode-specific PSDs averaged over channels.
 
     Parameters
     ----------
-    edges : boolean array
-        A boolean array marking significant connectivity edges. Shape must be 
-        (n_modes, n_channels, n_channels).
     f : np.ndarray
         Frequencies of the power spectra.
     psd_mean : np.ndarray
@@ -341,28 +339,36 @@ def plot_selected_parcel_psd(edges, f, psd_mean, psd_se, filename, fontsize=22):
     psd_se : np.ndarray
         Standard errors of power spectra over subjects. Shape is (n_states, 
         n_channels, n_freqs).
+    edges : boolean array
+        A boolean array marking specific brain regions. Shape must be 
+        (n_modes, n_channels, n_channels). Defaults to None. If given,
+        PSDs will be averaged over for selected channels.
     filename : str
-        Path for saving the power map.
+        Path for saving the power map. Defaults to None, in which case the 
+        figure will be saved in a current directory.
     fontsize : int
         Fontsize for axes ticks and labels. Defaults to 22.
     """
+    # Validation
+    if filename is None:
+        filename = os.getcwd()
 
     # Number of states/modes
-    n_class = edges.shape[0]
+    n_class = psd_mean.shape[0]
 
     # Select PSDs of parcels with significant connection strengths
     psds, stes = [], []
     vmin, vmax = 0, 0
     for n in range(n_class):
-        parcel_idx = np.unique(np.concatenate(np.where(edges[n] == True)))
-        mode_psd_mean = np.squeeze(psd_mean[n, parcel_idx, :])
-        mode_psd_se = np.squeeze(psd_se[n, parcel_idx, :])
-        psds.append(np.mean(
-            mode_psd_mean, axis=0 # average over selected channels
-        ))
-        stes.append(np.mean(
-            mode_psd_se, axis=0 # average over selected channels
-        ))
+        if edges is not None:
+            parcel_idx = np.unique(np.concatenate(np.where(edges[n] == True)))
+            mode_psd_mean = np.squeeze(psd_mean[n, parcel_idx, :])
+            mode_psd_se = np.squeeze(psd_se[n, parcel_idx, :])
+        else:
+            mode_psd_mean = np.squeeze(psd_mean[n])
+            mode_psd_se = np.squeeze(psd_se[n])
+        psds.append(np.mean(mode_psd_mean, axis=0)) # average over parcels
+        stes.append(np.mean(mode_psd_se, axis=0))
         vmin = np.min([vmin, np.min(psds[n] - stes[n])])
         vmax = np.max([vmax, np.max(psds[n] + stes[n])])
     vmin = vmin - (vmax - vmin) * 0.10
@@ -438,7 +444,7 @@ def plot_mode_spectra_group_diff(f, psd, subject_ids, group_assignments, method,
         lbl = "Mode"
 
     # Get group-averaged PSDs
-    psd_model, psd_design, psd_data = fit_glm(
+    psd_model, _, _ = fit_glm(
         psd,
         subject_ids,
         group_assignments,
