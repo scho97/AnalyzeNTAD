@@ -167,6 +167,7 @@ if __name__ == "__main__":
 
     # Get fractional occupancies to be used as weights
     fo = modes.fractional_occupancies(btc) # dim: (n_subjects, n_states)
+    gfo = np.mean(fo, axis=0)
 
     # Fit GLM model to power maps
     power_model, power_design, power_data = fit_glm_confound_regression(
@@ -184,18 +185,9 @@ if __name__ == "__main__":
         dimension_labels=["Subjects", "States/Modes", "Channels", "Channels"],
     )
 
-    # Fit GLM model to fractional occupancies
-    fo_model, fo_design, fo_data = fit_glm_confound_regression(
-        fo,
-        subject_ids,
-        modality,
-        dimension_labels=["Subjects", "States/Modes"]
-    )
-
     # Get parameter estimates (after confound regression)
     power_map = power_model.copes[0]
     conn_map = conn_model.copes[0]
-    fo = fo_model.copes[0]
 
     # Plot power maps
     visualize.plot_power_map(
@@ -203,7 +195,7 @@ if __name__ == "__main__":
         mask_file,
         parcellation_file,
         subtract_mean=(True if model_type == "hmm" else False),
-        mean_weights=fo,
+        mean_weights=gfo,
         filename=os.path.join(DATA_DIR, "maps/power_map_whole.png"),
     )
     # NOTE: For DyNeMo, as we only used regression coefficients of PSDs to compute the power maps, 
@@ -215,7 +207,7 @@ if __name__ == "__main__":
         conn_map,
         percentile=97,
         subtract_mean=True,
-        mean_weights=fo,
+        mean_weights=gfo,
         return_edges=True,
     )
     conn_map[~edges] = 0 # apply thresholding
@@ -229,7 +221,7 @@ if __name__ == "__main__":
 
     # Plot mean-subtracted channel-averaged PSDs for each state/mode
     if model_type == "hmm":
-        psd = psd - np.average(psd, axis=1, weights=fo, keepdims=True)
+        psd = psd - np.average(psd, axis=1, weights=gfo, keepdims=True)
     if model_type == "dynemo":
         psd = psd[:, 0, :, :, :] # use regression coefficients only
     
