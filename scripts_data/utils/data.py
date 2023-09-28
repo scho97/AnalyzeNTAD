@@ -42,3 +42,30 @@ def get_subject_ids(data_dir, modality):
     n_subjects = len(subject_ids)
 
     return subject_ids, n_subjects
+
+def load_group_information(subject_ids):
+    """Get subject indices in each group (amyloid negative controls
+       vs. amyloid positive patients with MCI or AD).
+
+    Parameters
+    ----------
+    subject_ids : list of str
+        List of subject IDs.
+
+    Returns
+    -------
+    an_idx : list of int
+        Subject indices for the amyloid negative group.
+    ap_idx : list of int
+        Subject indices for the amyloid positive group.
+    """
+
+    group_labels = [id[0] for id in subject_ids]
+    an_idx, ap_idx = [], [] # subject indices in each group
+    for i, lbl in enumerate(group_labels):
+        if lbl == "C":
+            an_idx.append(i)
+        elif lbl == "P":
+            ap_idx.append(i)
+
+    return an_idx, ap_idx

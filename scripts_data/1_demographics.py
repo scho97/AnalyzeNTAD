@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 from utils.data import get_subject_ids
-from utils.statistics import stat_ind_two_samples
+from utils.statistics import stat_ind_two_samples, fit_glm, max_stat_perm_test
 from utils.visualize import plot_age_distributions
 
 
@@ -73,7 +73,34 @@ if __name__ == "__main__":
         if any(np.isnan(var_ap)):
             print(f"{np.sum(np.isnan(var_ap))} NaN values excluded from Group AP.")
             var_ap = var_ap[~np.isnan(var_ap)]
-        stat, pval = stat_ind_two_samples(var_an, var_ap)
+        stat, pval = stat_ind_two_samples(var_ap, var_an) # amyloid positive vs. amyloid negative
+
+    # Conduct statistical test on MMSE comparing AP and AN groups
+    print("\n*** Permutation tests on MMSE scores in NTAD groups ***")
+    mmse_scores = df["MMSE"].copy().to_numpy()
+    if any(np.isnan(mmse_scores)):
+        print(f"{np.sum(np.isnan(mmse_scores))} NaN values excluded from MMSE scores.")
+        mmse_subject_ids = np.array(subjects)[~np.isnan(mmse_scores)]
+        mmse_scores = mmse_scores[~np.isnan(mmse_scores)]
+    mmse_scores = mmse_scores[:, np.newaxis]
+    mmse_model, mmse_design, mmse_data = fit_glm(
+        mmse_scores,
+        subject_ids=mmse_subject_ids,
+        dimension_labels=["Subjects", "Scores"],
+    )
+    pval = max_stat_perm_test(
+        mmse_model,
+        mmse_data,
+        mmse_design,
+        pooled_dims=1,
+        contrast_idx=0, # tests GroupDiff
+        n_perm=10000,
+        metric="tstats",
+    )
+    print("Result: t-statistic={} | p-value={}".format(
+        np.squeeze(mmse_model.tstats[0]),
+        pval,
+    ))
 
     # ------------ [2] ------------ #
     #      Data Visualization       #
