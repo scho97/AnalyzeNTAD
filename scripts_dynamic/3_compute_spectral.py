@@ -16,7 +16,6 @@ from utils.data import (load_order,
                         load_group_information,
                         load_outlier,
                         get_dynemo_mtc)
-from utils.statistics import fit_glm_confound_regression
 
 
 if __name__ == "__main__":
@@ -27,7 +26,7 @@ if __name__ == "__main__":
 
     # Set hyperparameters
     if len(argv) != 4:
-        print("Need to pass three arguments: modality, model type, and run ID (e.g., python script.py eeg hmm 8)")
+        print("Need to pass three arguments: modality, model type, and run ID (e.g., python script.py eeg hmm 0)")
     modality = argv[1]
     model_type = argv[2]
     run_id = argv[3]
@@ -168,15 +167,7 @@ if __name__ == "__main__":
 
     # Get fractional occupancies to be used as weights
     fo = modes.fractional_occupancies(btc) # dim: (n_subjects, n_states)
-
-    # Fit GLM model to fractional occupancies
-    fo_model, fo_design, fo_data = fit_glm_confound_regression(
-        fo,
-        subject_ids,
-        modality,
-        dimension_labels=["Subjects", "States/Modes"]
-    )
-    fo = fo_model.copes[0] # dim: (n_states,); FO after confound regression
+    gfo = np.mean(fo, axis=0)
 
     # ----------- [4] ------------ #
     #      Spectral analysis       #
@@ -187,7 +178,7 @@ if __name__ == "__main__":
 
     # Cluster permutation test on PSDs (mean-subtracted)
     if model_type == "hmm":
-        input_psd = psd - np.average(psd, axis=1, weights=fo, keepdims=True)
+        input_psd = psd - np.average(psd, axis=1, weights=gfo, keepdims=True)
     if model_type == "dynemo":
         input_psd = psd[:, 0, :, :, :] # use regression coefficients
     # dim: (n_subjects, n_states, n_channels, n_freqs)
@@ -206,7 +197,7 @@ if __name__ == "__main__":
 
     # Cluster permutation test on PSDs (mean-only)
     if model_type == "hmm":
-        input_psd = np.average(psd, axis=1, weights=fo, keepdims=True)
+        input_psd = np.average(psd, axis=1, weights=gfo, keepdims=True)
     if model_type == "dynemo":
         input_psd = psd[:, 1, :, :, :] # use regression intercepts
         input_psd = np.expand_dims(input_psd[:, 0, :, :], axis=1)
@@ -227,11 +218,11 @@ if __name__ == "__main__":
 
     # Plot PSD vs. Coherence (mean-subtracted)
     if model_type == "hmm":
-        input_psd = psd - np.average(psd, axis=1, weights=fo, keepdims=True)
+        input_psd = psd - np.average(psd, axis=1, weights=gfo, keepdims=True)
     if model_type == "dynemo":
         input_psd = psd_rescaled[:, 0, :, :, :] # use rescaled regression coefficients
 
-    coh_static_mean = np.average(coh, axis=1, weights=fo, keepdims=True)
+    coh_static_mean = np.average(coh, axis=1, weights=gfo, keepdims=True)
     input_coh = coh - coh_static_mean
 
     visualize.plot_pow_vs_coh(

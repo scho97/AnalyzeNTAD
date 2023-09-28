@@ -448,7 +448,6 @@ def plot_mode_spectra_group_diff(f, psd, subject_ids, group_assignments, method,
         psd,
         subject_ids,
         group_assignments,
-        modality=modality,
         dimension_labels=["Subjects", "States/Modes", "Channels", "Frequency"],
     )
     gpsd_an = psd_model.betas[1]
@@ -475,7 +474,6 @@ def plot_mode_spectra_group_diff(f, psd, subject_ids, group_assignments, method,
                 cpsd[:, n, :],
                 subject_ids,
                 group_assignments,
-                modality=modality,
                 dimension_labels=["Subjects", "Frequency"],
             )
             t_obs, clu_idx = cluster_perm_test(
@@ -553,7 +551,6 @@ def plot_mode_spectra_group_diff(f, psd, subject_ids, group_assignments, method,
                 cpsd[:, n, :],
                 subject_ids,
                 group_assignments,
-                modality=modality,
                 dimension_labels=["Subjects", "Frequency"],
             )
             t_obs, clu_idx = cluster_perm_test(
@@ -665,14 +662,12 @@ def plot_pow_vs_coh(freqs, psd, coh, subject_ids, group_assignments, method, mod
         po,
         subject_ids,
         group_assignments,
-        modality=modality,
         dimension_labels=["Subjects", "States/Modes", "Channels"],
     )
     sum_co_model, _, _ = fit_glm(
         sum_co,
         subject_ids,
         group_assignments,
-        modality=modality,
         dimension_labels=["Subjects", "States/Modes", "Channels"],
     )
     pos = [po_model.betas[1], po_model.betas[0]]

@@ -15,7 +15,7 @@ from utils.data import (load_order,
                         load_group_information,
                         load_outlier,
                         get_dynemo_mtc)
-from utils.statistics import fit_glm, fit_glm_confound_regression, max_stat_perm_test
+from utils.statistics import fit_glm, max_stat_perm_test
 from utils.visualize import plot_thresholded_map
 
 
@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
    # Set hyperparameters
    if len(argv) != 4:
-      print("Need to pass three arguments: modality, model type, and run ID (e.g., python script.py eeg hmm 6)")
+      print("Need to pass three arguments: modality, model type, and run ID (e.g., python script.py eeg hmm 0)")
    modality = argv[1]
    model_type = argv[2]
    run_id = argv[3]
@@ -155,15 +155,7 @@ if __name__ == "__main__":
 
    # Get fractional occupancies to be used as weights
    fo = modes.fractional_occupancies(btc) # dim: (n_subjects, n_states)
-
-   # Fit GLM model to fractional occupancies
-   fo_model, fo_design, fo_data = fit_glm_confound_regression(
-      fo,
-      subject_ids,
-      modality,
-      dimension_labels=["Subjects", "States/Modes"],
-   )
-   fo = fo_model.copes[0] # dim: (n_states,); FO after confound regression
+   gfo = np.mean(fo, axis=0)
 
    # ------------ [4] ----------- #
    #      Statistical Tests       #
@@ -218,7 +210,6 @@ if __name__ == "__main__":
          power_map_dynamic[:, n, :],
          subject_ids,
          group_assignments,
-         modality=modality,
          dimension_labels=["Subjects", "Channels"],
       )
       tstats = np.squeeze(power_model.tstats[0])
@@ -256,7 +247,6 @@ if __name__ == "__main__":
       power_map_static,
       subject_ids,
       group_assignments,
-      modality=modality,
       dimension_labels=["Subjects", "Channels"],
    )
    tstats = np.squeeze(power_model.tstats[0])
@@ -302,7 +292,6 @@ if __name__ == "__main__":
          conn_map_vec,
          subject_ids,
          group_assignments,
-         modality=modality,
          dimension_labels=["Subjects", "Connections"],
       )
       tstats = np.squeeze(conn_model.tstats[0])
@@ -353,7 +342,6 @@ if __name__ == "__main__":
       conn_map_vec,
       subject_ids,
       group_assignments,
-      modality=modality,
       dimension_labels=["Subjects", "Connections"],
    )
    tstats = np.squeeze(conn_model.tstats[0])

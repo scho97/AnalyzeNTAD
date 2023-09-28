@@ -16,7 +16,7 @@ from utils.data import (load_order,
                         load_group_information,
                         load_outlier,
                         get_dynemo_mtc)
-from utils.statistics import fit_glm_confound_regression
+from utils.statistics import fit_glm
 
 
 if __name__ == "__main__":
@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     # Set hyperparameters
     if len(argv) != 4:
-        print("Need to pass three arguments: modality, model type, and run ID (e.g., python script.py eeg hmm 8)")
+        print("Need to pass three arguments: modality, model type, and run ID (e.g., python script.py eeg hmm 0)")
     modality = argv[1]
     model_type = argv[2]
     run_id = argv[3]
@@ -75,6 +75,11 @@ if __name__ == "__main__":
     print("Total {} subjects | AN: {} | AP: {}".format(
         n_subjects, len(an_idx), len(ap_idx))
     )
+
+    # Define group assignment
+    group_assignments = np.zeros((n_subjects,))
+    group_assignments[ap_idx] = 1 # amyloid positive (w/ MCI, AD)
+    group_assignments[an_idx] = 2 # amyloid negative (controls)
 
     # Validation
     if len(alpha) != n_subjects:
@@ -139,6 +144,7 @@ if __name__ == "__main__":
         coh = coh[not_olr_idx]
         print(f"\tPSD shape: {psd.shape} | Coherence shape: {coh.shape}")
         # Reassign group indices
+        group_assignments = group_assignments[not_olr_idx]
         subject_ids = [subject_ids[idx] for idx in not_olr_idx]
         n_subjects = len(subject_ids)
         an_idx, ap_idx = load_group_information(subject_ids)
@@ -170,24 +176,24 @@ if __name__ == "__main__":
     gfo = np.mean(fo, axis=0)
 
     # Fit GLM model to power maps
-    power_model, power_design, power_data = fit_glm_confound_regression(
+    power_model, power_design, power_data = fit_glm(
         power_map,
         subject_ids,
-        modality,
+        group_assignments,
         dimension_labels=["Subjects", "States/Modes", "Channels"],
     )
 
     # Fit GLM model to connectivity maps
-    conn_model, conn_design, conn_data = fit_glm_confound_regression(
+    conn_model, conn_design, conn_data = fit_glm(
         conn_map,
         subject_ids,
-        modality,
+        group_assignments,
         dimension_labels=["Subjects", "States/Modes", "Channels", "Channels"],
     )
 
-    # Get parameter estimates (after confound regression)
-    power_map = power_model.copes[0]
-    conn_map = conn_model.copes[0]
+    # Get COPEs for overall mean (after confound regression)
+    power_map = power_model.copes[2]
+    conn_map = conn_model.copes[2]
 
     # Plot power maps
     visualize.plot_power_map(
@@ -225,14 +231,14 @@ if __name__ == "__main__":
     if model_type == "dynemo":
         psd = psd[:, 0, :, :, :] # use regression coefficients only
     
-    psd_model, psd_design, psd_data = fit_glm_confound_regression(
+    psd_model, psd_design, psd_data = fit_glm(
         psd,
         subject_ids,
-        modality,
+        group_assignments,
         dimension_labels=["Subjects", "States/Modes", "Channels", "Frequency"],
     )
-    psd_mean = psd_model.copes[0]
-    psd_se = np.sqrt(psd_model.varcopes[0])
+    psd_mean = psd_model.copes[2]
+    psd_se = np.sqrt(psd_model.varcopes[2])
     # dim: (n_modes, n_channels, n_freqs)
 
     visualize.plot_rsn_psd(

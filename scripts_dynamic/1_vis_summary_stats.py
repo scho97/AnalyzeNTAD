@@ -85,7 +85,7 @@ if __name__ == "__main__":
         not_olr_idx = np.setdiff1d(np.arange(n_subjects), outlier_idx)
         group_assignments = group_assignments[not_olr_idx]
         subject_ids = [subject_ids[idx] for idx in not_olr_idx]
-        n_subjects -= len(outlier_idx)
+        n_subjects = len(subject_ids)
         print("\tTotal {} subjects (after excluding outliers) | AN: {} | AP: {}".format(
               n_subjects,
               np.count_nonzero(group_assignments == 2),
@@ -160,8 +160,9 @@ if __name__ == "__main__":
             stat,
             subject_ids,
             group_assignments,
-            modality=modality,
-            dimension_labels=["Subjects", "States/Modes"]
+            dimension_labels=["Subjects", "States/Modes"],
+            plot_verbose=True,
+            save_path=os.path.join(DATA_DIR, "analysis/design_matrix.png"),
         )
         
         # Conduct a statistical test
