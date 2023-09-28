@@ -68,6 +68,8 @@ if __name__ == "__main__":
         psd,
         modality=modality,
         dimension_labels=["Subjects", "Channels", "Frequency"],
+        plot_verbose=True,
+        save_path=os.path.join(SAVE_DIR, "design_matrix.png"),
     )
 
     # Get group-level PSDs
