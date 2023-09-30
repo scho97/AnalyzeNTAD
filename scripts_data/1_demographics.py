@@ -115,8 +115,8 @@ if __name__ == "__main__":
         ages_ap,
         data_name="ntad",
         nbins=[
-            [55, 60, 65, 70, 75, 80],
-            [55, 60, 65, 70, 75, 80]
+            [50, 55, 60, 65, 70, 75, 80, 86],
+            [50, 55, 60, 65, 70, 75, 80, 86],
         ], # enforce equal bins for each group
         bar_label=True,
         save_dir=SAVE_DIR,
