@@ -212,12 +212,8 @@ def fit_glm(
         values=[1, -1] + [0] * len(covariates),
     ) # amyloid positive - amyloid negative
     DC.add_contrast(
-        name="GroupMean",
-        values=[0.5, 0.5] + [0] * len(covariates),
-    )
-    DC.add_contrast(
         name="OverallMean",
-        values=[1, 1] + [0] * len(covariates),
+        values=[0.5, 0.5] + [0] * len(covariates),
     )
     design = DC.design_from_datainfo(glm_data.info)
     if plot_verbose:
