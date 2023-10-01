@@ -46,7 +46,7 @@ if __name__ == "__main__":
     # Get group-level power maps
     gpower_an = power_model.betas[1]
     gpower_ap = power_model.betas[0]
-    gpower_diff = gpower_ap - gpower_an # amyloid positive - amyloid negative
+    gpower_diff = power_model.copes[0] # amyloid positive - amyloid negative
     # dim: (n_channels,)
     print("Shape of group-level power maps :", gpower_diff.shape)
 

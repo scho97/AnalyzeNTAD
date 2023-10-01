@@ -45,6 +45,7 @@ if __name__ == "__main__":
     # Get group-level AEC maps
     gconn_map_an = aec_model.betas[1]
     gconn_map_ap = aec_model.betas[0]
+    gconn_map_diff = aec_model.copes[0] # amyloid positive - amyloid negative
     # dim: (n_channels, n_channels)
     
     # Fill diagonal elements with NaNs for visualization
@@ -66,7 +67,6 @@ if __name__ == "__main__":
             vmin=vmin, vmax=vmax,
         )
 
-    gconn_map_diff = gconn_map_ap - gconn_map_an # amyloid positive vs. amyloid negative
     visualize.plot_aec_heatmap(
         heatmap=gconn_map_diff,
         filename=os.path.join(SAVE_DIR, "aec_heatmap_diff.png"),
