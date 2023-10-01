@@ -662,7 +662,7 @@ class GroupPSDDifference():
         elif self.data_space == "sensor":
             cb = plt.colorbar(matplotlib.cm.ScalarMappable(norm=cnorm_top, cmap=cmap), cax=cb_ax, orientation="vertical")
             cb.ax.set_yticks([-vtop, 0, vtop])
-        cb.ax.set_ylabel("PSD (a.u.)", fontsize=12)
+        cb.ax.set_ylabel("PSD (a.u.)", fontsize=14)
         cb.ax.ticklabel_format(style="scientific", axis="y", scilimits=(-2, 4))
         # Add manual colorbar for topographies at the bottom
         cb_ax = ax.inset_axes([0.78, -0.38, 0.03, 0.22])
@@ -675,7 +675,7 @@ class GroupPSDDifference():
         elif self.data_space == "sensor":
             cb = plt.colorbar(matplotlib.cm.ScalarMappable(norm=cnorm_bottom, cmap=cmap), cax=cb_ax, orientation="vertical")
             cb.ax.set_yticks([-vbottom, 0, vbottom])
-        cb.ax.set_ylabel("PSD (a.u.)", fontsize=12)
+        cb.ax.set_ylabel("Power (a.u.)", fontsize=14)
         cb.ax.ticklabel_format(style='scientific', axis='y', scilimits=(-2, 4))
 
         # Set labels
