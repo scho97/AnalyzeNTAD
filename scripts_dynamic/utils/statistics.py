@@ -85,12 +85,8 @@ def fit_glm(
         values=[1, -1] + [0] * len(covariates),
     ) # amyloid positive - amyloid negative
     DC.add_contrast(
-        name="GroupMean",
-        values=[0.5, 0.5] + [0] * len(covariates),
-    )
-    DC.add_contrast(
         name="OverallMean",
-        values=[1, 1] + [0] * len(covariates),
+        values=[0.5, 0.5] + [0] * len(covariates),
     )
     design = DC.design_from_datainfo(glm_data.info)
     if plot_verbose:
@@ -246,7 +242,7 @@ def cluster_perm_test(
     )
 
     # Extract significant clusters
-    percentile = (1 - (0.05 / (2 * bonferroni_ntest))) * 100
+    percentile = (1 - (0.05 / bonferroni_ntest)) * 100
     # NOTE: We use alpha threshold of 0.05.
     clu_masks, clu_stats = perm.get_sig_clusters(glm_data, percentile)
     if clu_stats is not None:

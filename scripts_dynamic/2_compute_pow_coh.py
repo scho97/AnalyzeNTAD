@@ -192,8 +192,8 @@ if __name__ == "__main__":
     )
 
     # Get COPEs for overall mean (after confound regression)
-    power_map = power_model.copes[2]
-    conn_map = conn_model.copes[2]
+    power_map = power_model.copes[1]
+    conn_map = conn_model.copes[1]
 
     # Plot power maps
     visualize.plot_power_map(
@@ -237,8 +237,8 @@ if __name__ == "__main__":
         group_assignments,
         dimension_labels=["Subjects", "States/Modes", "Channels", "Frequency"],
     )
-    psd_mean = psd_model.copes[2]
-    psd_se = np.sqrt(psd_model.varcopes[2])
+    psd_mean = psd_model.copes[1]
+    psd_se = np.sqrt(psd_model.varcopes[1])
     # dim: (n_modes, n_channels, n_freqs)
 
     visualize.plot_rsn_psd(
