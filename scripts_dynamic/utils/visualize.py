@@ -404,7 +404,7 @@ def plot_rsn_psd(f, psd_mean, psd_se, edges=None, filename=None, fontsize=22):
 
     return None
 
-def plot_mode_spectra_group_diff(f, psd, subject_ids, group_assignments, method, modality, bonferroni_ntest, filename):
+def plot_mode_spectra_group_diff(f, psd, subject_ids, group_assignments, method, bonferroni_ntest, filename):
     """Plots state/mode-specific PSDs and their between-group statistical differences.
 
     This function tests statistical differences using a cluster permutation test on the
@@ -425,8 +425,6 @@ def plot_mode_spectra_group_diff(f, psd, subject_ids, group_assignments, method,
         (amyloid negative).
     method : str
         Type of the dynamic model. Can be "hmm" or "dynemo".
-    modality : str
-        Type of the neuroimaging modality. Can be "eeg" or "meg".
     bonferroni_ntest : int
         Number of tests to use for Bonferroni correction. If None, Bonferroni
         correction will not take place.
@@ -609,7 +607,7 @@ def plot_mode_spectra_group_diff(f, psd, subject_ids, group_assignments, method,
 
     return None
 
-def plot_pow_vs_coh(freqs, psd, coh, subject_ids, group_assignments, method, modality, filenames, freq_range = None, legend=False):
+def plot_pow_vs_coh(freqs, psd, coh, subject_ids, group_assignments, method, filenames, freq_range = None, legend=False):
     """Saves a scatter plot of group-level power and coherence values for each group.
 
     Parameters
@@ -630,8 +628,6 @@ def plot_pow_vs_coh(freqs, psd, coh, subject_ids, group_assignments, method, mod
         (amyloid negative).
     method : str
         Type of the dynamic model. Can be "hmm" or "dynemo".
-    modality : str
-        Type of the neuroimaging modality. Can be "eeg" or "meg".
     filenames : list of str
         Paths for saving the figures.
     freq_range : list of int

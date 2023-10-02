@@ -190,7 +190,6 @@ if __name__ == "__main__":
         subject_ids,
         group_assignments,
         method=model_type,
-        modality=modality,
         bonferroni_ntest=n_test,
         filename=os.path.join(DATA_DIR, "analysis/psd_cluster_dynamic.png"),
     )
@@ -211,7 +210,6 @@ if __name__ == "__main__":
         subject_ids,
         group_assignments,
         method=model_type,
-        modality=modality,
         bonferroni_ntest=n_test,
         filename=os.path.join(DATA_DIR, "analysis/psd_cluster_static.png"),
     )
@@ -232,7 +230,6 @@ if __name__ == "__main__":
         subject_ids,
         group_assignments,
         method=model_type,
-        modality=modality,
         filenames=[os.path.join(DATA_DIR, f"analysis/pow_coh_dynamic_{lbl}.png") for lbl in ["an", "ap"]],
     )
 
