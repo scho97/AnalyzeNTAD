@@ -369,7 +369,7 @@ def cluster_perm_test(
     )
 
     # Extract significant clusters
-    percentile = (1 - (0.05 / (2 * bonferroni_ntest))) * 100
+    percentile = (1 - (0.05 / bonferroni_ntest)) * 100
     # NOTE: We use alpha threshold of 0.05.
     clu_masks, clu_stats = perm.get_sig_clusters(glm_data, percentile)
     if clu_stats is not None:
