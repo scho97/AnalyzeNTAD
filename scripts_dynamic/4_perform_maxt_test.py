@@ -164,7 +164,7 @@ if __name__ == "__main__":
 
    # Separate static and dynamic components in PSDs
    if model_type == "hmm":
-      psd_static_mean = np.average(psd, axis=1, weights=fo, keepdims=True)
+      psd_static_mean = np.average(psd, axis=1, weights=gfo, keepdims=True)
       psd_dynamic = psd - psd_static_mean
       # the mean across states/modes is subtracted from the PSDs subject-wise
    if model_type == "dynemo":
@@ -175,7 +175,7 @@ if __name__ == "__main__":
       psd = np.sum(psd, axis=1) # sum coefficients and intercepts
 
    # Separate static and dynamic components in coherences
-   coh_static_mean = np.average(coh, axis=1, weights=fo, keepdims=True)
+   coh_static_mean = np.average(coh, axis=1, weights=gfo, keepdims=True)
    coh_dynamic = coh - coh_static_mean
 
    # Compute power maps
