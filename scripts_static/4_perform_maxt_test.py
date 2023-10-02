@@ -80,7 +80,7 @@ if __name__ == "__main__":
     null_dist = perm.nulls # dim: (n_perm,)
 
     # Get critical threshold value
-    p_alpha = 100 - (0.05 / (2 * bonferroni_ntest)) * 100
+    p_alpha = 100 - (0.05 / bonferroni_ntest) * 100
     thresh = perm.get_thresh(p_alpha)
     # NOTE: We use 0.05 as our alpha threshold.
     print(f"Metric threshold: {thresh:.3f}")
