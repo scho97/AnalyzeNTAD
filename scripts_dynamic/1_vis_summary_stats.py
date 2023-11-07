@@ -14,7 +14,7 @@ from utils.data import (get_dynemo_mtc,
                         load_group_information,
                         load_outlier)
 from utils.statistics import fit_glm, max_stat_perm_test
-from utils.visualize import plot_grouped_violin
+from utils.visualize import plot_grouped_violin, plot_single_grouped_violin
 
 
 if __name__ == "__main__":
@@ -148,6 +148,7 @@ if __name__ == "__main__":
     bonferroni_ntest = 4 # n_test = n_metrics
     metric_names = ["fo", "lt", "intv", "sr"]
     metric_full_names = ["Fractional Occupancy", "Mean Lifetimes (ms)", "Mean Intervals (s)", "Swithching Rates"]
+    group_lbl = ["AN" if val == 2 else "AP" for val in group_assignments]
     for i, stat in enumerate([fo, lt, intv, sr]):
         print(f"[{metric_names[i].upper()}] Running Max-t Permutation Test ...")
 
@@ -183,7 +184,6 @@ if __name__ == "__main__":
         print("\tSignificant states/modes: ", np.arange(1, n_class + 1)[pvalues < 0.05])
 
         # Visualise violin plots
-        group_lbl = ["AN" if val == 2 else "AP" for val in group_assignments]
         plot_grouped_violin(
             data=stat,
             group_label=group_lbl,
@@ -199,6 +199,26 @@ if __name__ == "__main__":
             "copes": np.squeeze(stat_model.copes[0]),
             "pvalues": pvalues,
         }
+
+    # Visualize violin plots for each state/mode with group differences
+    pvalues_all = [summ_stat_statistics[key]["pvalues"] for key in summ_stat_statistics.keys()]
+    pvalues_all = np.array(pvalues_all)
+    sig_class = np.arange(n_class)[np.sum(pvalues_all < 0.05, axis=0) != 0]
+
+    for i, stat in enumerate([fo, lt, intv, sr]):
+        if catch_outlier:
+            stat = stat[not_olr_idx, :] # exclude outliers
+        for c in sig_class:
+            print(f"Plotting a single grouped violin plot for State/Mode {c + 1} ...")       
+            plot_single_grouped_violin(
+                data=stat[:, c],
+                group_label=group_lbl,
+                method_name=model_type,
+                filename=os.path.join(DATA_DIR, f"analysis/{metric_names[i]}_{c}.png"),
+                xlbl=f"{c}",
+                ylbl=metric_full_names[i],
+                pval=pvalues_all[i, c],
+            )
 
     # Save statistical test results
     with open(os.path.join(DATA_DIR, "model/results/summ_stat_statistics.pkl"), "wb") as output_path:

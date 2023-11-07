@@ -83,8 +83,80 @@ def plot_correlations(data1, data2, filename):
 
     return None
 
+def plot_single_grouped_violin(data, group_label, method_name, filename, xlbl=None, ylbl=None, pval=None):
+    """Plots a grouped violin plot.
+    Parameters
+    ----------
+    data : np.ndarray
+        Input data. Shape must be (n_subjects,).
+    group_label : list of str
+        List containing group labels for each subject.
+    method_name : str
+        Type of the model used for getting the input data. Must be either
+        "hmm" or "dynemo".
+    filename : str
+        Path for saving the figure.
+    xlbl : str
+        X-axis tick label. Defaults to None. If you input a string of a number,
+        it will print out "State {xlbl}" or "Mode {xlbl}" depending on the 
+        method_name.
+    ylbl : str
+        Y-axis tick label. Defaults to None.
+    pval : np.ndarray
+        P-values for each violin indicating staticial differences between
+        the groups. If provided, statistical significance is plotted above the
+        violins. Defaults to None.
+    """
+
+    # Validation
+    if not isinstance(data, np.ndarray):
+        raise ValueError("Input data should be an numpy array.")
+    if method_name == "hmm": lbl = "State"
+    elif method_name == "dynemo": lbl = "Mode"
+
+    # Build dataframe
+    df = pd.DataFrame(data, columns=["Statistics"])
+    df["Age"] = group_label
+    df[lbl] = np.ones((len(data),))
+
+    # Plot grouped split violins
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(3.5, 4))
+    vp = sns.violinplot(data=df, x=lbl, y="Statistics", hue="Age",
+                        split=True, inner="box", linewidth=1,
+                        palette={"AN": "b", "AP": "r"}, ax=ax)
+    if pval is not None:
+        vmin, vmax = [], []
+        for collection in vp.collections:
+            if isinstance(collection, matplotlib.collections.PolyCollection):
+                vmin.append(np.min(collection.get_paths()[0].vertices[:, 1]))
+                vmax.append(np.max(collection.get_paths()[0].vertices[:, 1]))
+        vmin = np.min(np.array(vmin))
+        vmax = np.max(np.array(vmax))
+        ht = (vmax - vmin) * 0.045
+        p_lbl = categrozie_pvalue(pval)
+        if p_lbl != "n.s.":
+            ax.text(
+                vp.get_xticks(),
+                vmax + ht,
+                p_lbl, 
+                ha="center", va="center", color="k", 
+                fontsize=15, fontweight="bold"
+            )
+    sns.despine(fig=fig, ax=ax) # get rid of top and right axes
+    ax.set_ylim([ax.get_ylim()[0], ax.get_ylim()[1] + np.max(vmax - vmin) * 0.05])
+    ax.set_xlabel(f"{lbl} {xlbl}", fontsize=18)
+    ax.set_ylabel(ylbl, fontsize=18)
+    ax.set_xticks([])
+    ax.tick_params(labelsize=18)
+    ax.get_legend().remove()
+    plt.tight_layout()
+    fig.savefig(filename)
+    plt.close(fig)
+
+    return None
+
 def plot_grouped_violin(data, group_label, method_name, filename, ylbl=None, pval=None):
-    """Plots grouped violins.
+    """Plots grouped violins for all features in the feature dimension.
 
     Parameters
     ----------
@@ -99,7 +171,7 @@ def plot_grouped_violin(data, group_label, method_name, filename, ylbl=None, pva
         Path for saving the figure.
     ylbl : str
         Y-axis tick label. Defaults to None.
-    pval : str
+    pval : np.ndarray
         P-values for each violin indicating staticial differences between
         the groups. If provided, statistical significance is plotted above the
         violins. Defaults to None.
