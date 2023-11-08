@@ -120,7 +120,7 @@ def plot_single_grouped_violin(data, group_label, method_name, filename, xlbl=No
     df[lbl] = np.ones((len(data),))
 
     # Plot grouped split violins
-    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(3.5, 4))
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(3.7, 4))
     vp = sns.violinplot(data=df, x=lbl, y="Statistics", hue="Age",
                         split=True, inner="box", linewidth=1,
                         palette={"AN": "b", "AP": "r"}, ax=ax)
@@ -140,14 +140,16 @@ def plot_single_grouped_violin(data, group_label, method_name, filename, xlbl=No
                 vmax + ht,
                 p_lbl, 
                 ha="center", va="center", color="k", 
-                fontsize=15, fontweight="bold"
+                fontsize=20, fontweight="bold"
             )
     sns.despine(fig=fig, ax=ax) # get rid of top and right axes
     ax.set_ylim([ax.get_ylim()[0], ax.get_ylim()[1] + np.max(vmax - vmin) * 0.05])
-    ax.set_xlabel(f"{lbl} {xlbl}", fontsize=18)
-    ax.set_ylabel(ylbl, fontsize=18)
+    if xlbl is not None:
+        ax.set_xlabel(f"{lbl} {xlbl}", fontsize=22)
+    else: ax.set_xlabel("")
+    ax.set_ylabel(ylbl, fontsize=22)
     ax.set_xticks([])
-    ax.tick_params(labelsize=18)
+    ax.tick_params(labelsize=22)
     ax.get_legend().remove()
     plt.tight_layout()
     fig.savefig(filename)

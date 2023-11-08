@@ -215,7 +215,6 @@ if __name__ == "__main__":
                 group_label=group_lbl,
                 method_name=model_type,
                 filename=os.path.join(DATA_DIR, f"analysis/{metric_names[i]}_{c}.png"),
-                xlbl=f"{c}",
                 ylbl=metric_full_names[i],
                 pval=pvalues_all[i, c],
             )
