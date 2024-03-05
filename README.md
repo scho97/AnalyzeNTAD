@@ -1,7 +1,7 @@
 # AnalyzeNTAD
 Analysis of New Therapeutics in Alzheimer's Disease Longitudinal Cohort (NTAD) M/EEG Data
 
-In Chapter 3 of my master's thesis: [_M/EEG Brain Network Features as Biomarkers for Alzheimer's Disease_](https://ora.ox.ac.uk/objects/uuid:27faa894-b350-4da4-a7e4-7611dbd86791)
+In Chapter 3 of my master's thesis: [_Inferring brain network dynamics of MEG and EEG in healthy aging and Alzheimer's disease_](https://ora.ox.ac.uk/objects/uuid:27faa894-b350-4da4-a7e4-7611dbd86791)
 
 💡 Please email SungJun Cho at sungjun.cho@psych.ox.ac.uk with any questions or concerns.
 
